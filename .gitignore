@@ -1,0 +1,63 @@
+## .NET / Visual Studio
+
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio cache/options
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider
+.idea/
+
+# VS Code
+.vscode/
+
+# NuGet
+*.nupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+# Build artifacts
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ll]og/
+[Ll]ogs/
+
+# ASP.NET Core
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json
+wwwroot/lib/
+
+# Environment/secrets
+*.env
+.env
+secrets.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker (optional - remove if you want Dockerfile tracked, which you likely do)
+# Dockerfile is usually tracked, not ignored
+
+# Rider/ReSharper
+_ReSharper*/
+*.ReSharper
+
+# Test results
+[Tt]est[Rr]esult*/
+*.trx
+
+# Publish output
+publish/
+PublishProfiles/
