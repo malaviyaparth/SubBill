@@ -4,21 +4,13 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>72db2eb4-cf1f-4d88-ba50-c2275392de41</UserSecretsId>
+    <UserSecretsId>65416d4f-cf24-43ba-9cd4-334623664b3c</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>.</DockerfileContext>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.24.1-preview.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EditorConfigFiles Remove="D:\5th Semester\WAD\SubBill\.editorconfig" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="D:\5th Semester\WAD\SubBill\.editorconfig" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.24.2-preview.1" />
   </ItemGroup>
 
 </Project>
