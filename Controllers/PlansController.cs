@@ -1,90 +1,130 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SubBill.Data;
 using SubBill.Models;
-using SubBill.Services;
 
 namespace SubBill.Controllers
 {
+    [Authorize]
     public class PlansController : Controller
     {
-        private readonly ISubscriptionPlanService _service;
+        private readonly ApplicationDbContext _context;
 
-        public PlansController(ISubscriptionPlanService service)
+        public PlansController(ApplicationDbContext context)
         {
-            _service = service;
+            _context = context;
         }
 
         // GET: /Plans
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            var plans = _service.GetAll();
+            var plans = await _context.SubscriptionPlans.ToListAsync();
+
             return View(plans);
         }
 
         // GET: /Plans/Create
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             return View();
         }
 
         // POST: /Plans/Create
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create(SubscriptionPlan plan)
+        public async Task<IActionResult> Create(SubscriptionPlan plan)
         {
             if (!ModelState.IsValid)
             {
                 return View(plan);
             }
 
-            _service.Create(plan);
+            _context.SubscriptionPlans.Add(plan);
+            await _context.SaveChangesAsync();
+
             TempData["Message"] = "Plan created successfully.";
+
             return RedirectToAction(nameof(Index));
         }
 
         // GET: /Plans/Edit/3
-        public IActionResult Edit(int id)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Edit(int id)
         {
-            var plan = _service.GetById(id);
-            if (plan == null) return NotFound();
+            var plan = await _context.SubscriptionPlans.FindAsync(id);
+
+            if (plan == null)
+                return NotFound();
 
             return View(plan);
         }
 
         // POST: /Plans/Edit/3
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Edit(int id, SubscriptionPlan plan)
+        public async Task<IActionResult> Edit(
+            int id,
+            SubscriptionPlan plan)
         {
-            if (id != plan.Id) return BadRequest();
+            if (id != plan.Id)
+                return BadRequest();
 
             if (!ModelState.IsValid)
             {
                 return View(plan);
             }
 
-            var updated = _service.Update(plan);
-            if (!updated) return NotFound();
+            var existingPlan =
+                await _context.SubscriptionPlans.FindAsync(id);
+
+            if (existingPlan == null)
+                return NotFound();
+
+            existingPlan.Name = plan.Name;
+            existingPlan.Description = plan.Description;
+            existingPlan.Price = plan.Price;
+            existingPlan.BillingCycle = plan.BillingCycle;
+            existingPlan.IsActive = plan.IsActive;
+
+            await _context.SaveChangesAsync();
 
             TempData["Message"] = "Plan updated successfully.";
+
             return RedirectToAction(nameof(Index));
         }
 
         // GET: /Plans/Delete/3
-        public IActionResult Delete(int id)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Delete(int id)
         {
-            var plan = _service.GetById(id);
-            if (plan == null) return NotFound();
+            var plan = await _context.SubscriptionPlans.FindAsync(id);
+
+            if (plan == null)
+                return NotFound();
 
             return View(plan);
         }
 
         // POST: /Plans/Delete/3
+        [Authorize(Roles = "Admin")]
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public IActionResult DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            _service.Delete(id);
+            var plan = await _context.SubscriptionPlans.FindAsync(id);
+
+            if (plan == null)
+                return NotFound();
+
+            _context.SubscriptionPlans.Remove(plan);
+            await _context.SaveChangesAsync();
+
             TempData["Message"] = "Plan deleted.";
+
             return RedirectToAction(nameof(Index));
         }
     }
