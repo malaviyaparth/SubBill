@@ -1,0 +1,30 @@
+﻿@model List<SubscriptionPlan>
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+
+<h2>Available Plans</h2>
+
+<div class="row">
+    @foreach (var plan in Model)
+    {
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">@plan.Name</h5>
+                    <p class="card-text">@plan.Description</p>
+                    <p><strong>@plan.Price / @plan.BillingCycle</strong></p>
+                    @* <p>
+                        Features:
+                        @string.Join(", ", plan.Features)
+                    </p> *@
+                    <a asp-action="Subscribe" asp-route-id="@plan.Id" class="btn btn-primary">
+                        Subscribe
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+</div>

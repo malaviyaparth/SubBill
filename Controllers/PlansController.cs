@@ -6,7 +6,7 @@ using SubBill.Models;
 
 namespace SubBill.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class PlansController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -25,14 +25,12 @@ namespace SubBill.Controllers
         }
 
         // GET: /Plans/Create
-        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             return View();
         }
 
         // POST: /Plans/Create
-        [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(SubscriptionPlan plan)
@@ -51,7 +49,6 @@ namespace SubBill.Controllers
         }
 
         // GET: /Plans/Edit/3
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int id)
         {
             var plan = await _context.SubscriptionPlans.FindAsync(id);
@@ -63,7 +60,6 @@ namespace SubBill.Controllers
         }
 
         // POST: /Plans/Edit/3
-        [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(
@@ -98,7 +94,6 @@ namespace SubBill.Controllers
         }
 
         // GET: /Plans/Delete/3
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var plan = await _context.SubscriptionPlans.FindAsync(id);
@@ -110,7 +105,6 @@ namespace SubBill.Controllers
         }
 
         // POST: /Plans/Delete/3
-        [Authorize(Roles = "Admin")]
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)

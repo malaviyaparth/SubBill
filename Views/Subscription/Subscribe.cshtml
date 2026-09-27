@@ -1,0 +1,23 @@
+﻿@model SubscriptionPlan
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+
+<h2>Confirm Subscription</h2>
+
+<div class="card w-50">
+    <div class="card-body">
+        <h5 class="card-title">@Model.Name</h5>
+        <p class="card-text">@Model.Description</p>
+        <p><strong>@Model.Price / @Model.BillingCycle</strong></p>
+        @* <p>Features: @string.Join(", ", Model.Features)</p> *@
+
+        <form asp-action="Subscribe" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-success">Confirm Subscription</button>
+            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>

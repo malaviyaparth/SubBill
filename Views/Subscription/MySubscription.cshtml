@@ -1,0 +1,26 @@
+﻿@model UserSubscription
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+
+<h2>My Subscription</h2>
+
+@if (Model == null)
+{
+    <p>You have no active subscription.</p>
+    <a asp-action="Index" class="btn btn-primary">Browse Plans</a>
+}
+else
+{
+    <div class="card w-50">
+        <div class="card-body">
+            <h5 class="card-title">@Model.Plan.Name</h5>
+            <p>Status: <span class="badge bg-success">@Model.Status</span></p>
+            <p>Started: @Model.StartDate.ToString("dd MMM yyyy")</p>
+            <p>Expires: @Model.ExpiryDate.ToString("dd MMM yyyy")</p>
+            <a asp-action="Index" class="btn btn-outline-primary">Change Plan</a>
+        </div>
+    </div>
+}
