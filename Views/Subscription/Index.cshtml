@@ -1,30 +1,69 @@
-﻿@model List<SubscriptionPlan>
-@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+@model List<SubBill.Models.SubscriptionPlan>
 @{
+    ViewData["Title"] = "Available Plans";
+    var currentSub = ViewBag.CurrentSubscription as SubBill.Models.UserSubscription;
 }
 
-<h2>Available Plans</h2>
+<div class="container py-4">
+    <div class="text-center mb-5">
+        <h2 class="display-6 fw-bold">Choose the Right Plan for You</h2>
+        <p class="text-muted lead">Transparent pricing with no hidden fees. Flexible monthly, quarterly, or yearly billing.</p>
+    </div>
 
-<div class="row">
-    @foreach (var plan in Model)
+    @if (TempData["Message"] != null)
     {
-        <div class="col-md-4 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">@plan.Name</h5>
-                    <p class="card-text">@plan.Description</p>
-                    <p><strong>@plan.Price / @plan.BillingCycle</strong></p>
-                    @* <p>
-                        Features:
-                        @string.Join(", ", plan.Features)
-                    </p> *@
-                    <a asp-action="Subscribe" asp-route-id="@plan.Id" class="btn btn-primary">
-                        Subscribe
-                    </a>
-                </div>
-            </div>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Message"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row row-cols-1 row-cols-md-3 g-4 mb-5">
+        @foreach (var plan in Model)
+        {
+            var isCurrent = currentSub != null && currentSub.PlanId == plan.Id;
+
+            <div class="col">
+                <div class="card h-100 shadow-sm border-0 @(isCurrent ? "border-primary border-2 shadow" : "")">
+                    <div class="card-header bg-white py-3 text-center @(isCurrent ? "bg-primary text-white" : "")">
+                        <h4 class="card-title my-0 fw-bold">@plan.Name</h4>
+                        @if (isCurrent)
+                        {
+                            <span class="badge bg-light text-primary mt-1">CURRENT ACTIVE PLAN</span>
+                        }
+                    </div>
+                    <div class="card-body d-flex flex-column text-center p-4">
+                        <h2 class="card-title pricing-card-title mb-3">
+                            @plan.Price.ToString("C")
+                            <small class="text-muted fw-light fs-6">/ @plan.BillingCycle</small>
+                        </h2>
+                        <p class="card-text text-muted mb-4">@plan.Description</p>
+
+                        <div class="mt-auto">
+                            @if (isCurrent)
+                            {
+                                <a asp-action="MySubscription" class="btn btn-outline-primary w-100">View Active Subscription</a>
+                            }
+                            else if (currentSub != null)
+                            {
+                                <a asp-action="ChangePlan" class="btn btn-primary w-100">Switch to @plan.Name</a>
+                            }
+                            else
+                            {
+                                <a asp-action="Subscribe" asp-route-id="@plan.Id" class="btn btn-primary w-100">Subscribe Now</a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
 </div>

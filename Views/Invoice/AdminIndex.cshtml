@@ -1,0 +1,86 @@
+@model List<SubBill.Models.Invoice>
+@{
+    ViewData["Title"] = "Admin - Invoices";
+    var searchTerm = ViewBag.SearchTerm as string;
+    var status = ViewBag.Status as SubBill.Models.InvoiceStatus?;
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>All Invoices (Admin)</h2>
+        <div>
+            <a asp-controller="Payment" asp-action="AdminPayments" class="btn btn-outline-secondary me-2">Admin Payments</a>
+            <a asp-controller="Plans" asp-action="Index" class="btn btn-outline-primary">Manage Plans</a>
+        </div>
+    </div>
+
+    <!-- Search & Filter Form -->
+    <form method="get" class="row g-3 mb-4">
+        <div class="col-md-5">
+            <input type="text" name="searchTerm" class="form-control" placeholder="Search by Invoice # or Customer Email..." value="@searchTerm" />
+        </div>
+        <div class="col-md-3">
+            <select name="status" class="form-select">
+                <option value="">All Statuses</option>
+                <option value="Paid" selected="@(status == SubBill.Models.InvoiceStatus.Paid)">Paid</option>
+                <option value="Pending" selected="@(status == SubBill.Models.InvoiceStatus.Pending)">Pending</option>
+                <option value="Cancelled" selected="@(status == SubBill.Models.InvoiceStatus.Cancelled)">Cancelled</option>
+            </select>
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a asp-action="AdminIndex" class="btn btn-outline-secondary">Reset</a>
+        </div>
+    </form>
+
+    @if (!Model.Any())
+    {
+        <div class="card shadow-sm border-0 text-center p-5">
+            <p class="text-muted mb-0">No invoices match your filter criteria.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Customer</th>
+                            <th>Plan</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var invoice in Model)
+                        {
+                            <tr>
+                                <td><strong>@invoice.InvoiceNumber</strong></td>
+                                <td>
+                                    <div>@(invoice.User?.FullName ?? "N/A")</div>
+                                    <small class="text-muted">@invoice.User?.Email</small>
+                                </td>
+                                <td>@(invoice.Subscription?.Plan?.Name ?? "Plan")</td>
+                                <td><strong>@invoice.Currency @invoice.TotalAmount.ToString("F2")</strong></td>
+                                <td>
+                                    <span class="badge @(invoice.Status == SubBill.Models.InvoiceStatus.Paid ? "bg-success" : "bg-warning text-dark")">
+                                        @invoice.Status
+                                    </span>
+                                </td>
+                                <td>@invoice.InvoiceDate.ToString("dd MMM yyyy")</td>
+                                <td class="text-end">
+                                    <a asp-action="Details" asp-route-id="@invoice.Id" class="btn btn-sm btn-outline-secondary me-1">View</a>
+                                    <a asp-action="Download" asp-route-id="@invoice.Id" class="btn btn-sm btn-outline-primary">PDF</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>

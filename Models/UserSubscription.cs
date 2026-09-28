@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SubBill.Models
@@ -8,19 +8,40 @@ namespace SubBill.Models
         public int Id { get; set; }
 
         [Required]
-        public string UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
         [ForeignKey("UserId")]
-        public ApplicationUser User { get; set; }
+        public ApplicationUser? User { get; set; }
 
         [Required]
         public int PlanId { get; set; }
         [ForeignKey("PlanId")]
-        public SubscriptionPlan Plan { get; set; }
+        public SubscriptionPlan? Plan { get; set; }
 
-        public DateTime StartDate { get; set; }
-        public DateTime ExpiryDate { get; set; }
+        public DateTime StartDate { get; set; } = DateTime.UtcNow;
 
-        [MaxLength(20)]
-        public string Status { get; set; } // "Active" / "Expired" / "Cancelled"
+        public DateTime CurrentPeriodStart { get; set; } = DateTime.UtcNow;
+
+        public DateTime CurrentPeriodEnd { get; set; } = DateTime.UtcNow;
+
+        // Backward compatibility property for existing code
+        [NotMapped]
+        public DateTime ExpiryDate
+        {
+            get => CurrentPeriodEnd;
+            set => CurrentPeriodEnd = value;
+        }
+
+        public SubscriptionStatus Status { get; set; } = SubscriptionStatus.Active;
+
+        public bool AutoRenew { get; set; } = true;
+
+        public DateTime? CancelledAt { get; set; }
+
+        [MaxLength(500)]
+        public string? CancellationReason { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 }

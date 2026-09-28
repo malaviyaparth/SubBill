@@ -1,0 +1,57 @@
+@model List<SubBill.Models.SubscriptionHistory>
+@{
+    ViewData["Title"] = "Subscription History";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Subscription Change History</h2>
+        <a asp-action="MySubscription" class="btn btn-outline-primary">Back to My Subscription</a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="card shadow-sm border-0 text-center p-5">
+            <p class="text-muted mb-0">No subscription upgrade or downgrade history recorded yet.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Previous Plan</th>
+                            <th>New Plan</th>
+                            <th>Change Type</th>
+                            <th>Date & Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var history in Model)
+                        {
+                            <tr>
+                                <td>@history.Id</td>
+                                <td>@history.OldPlan?.Name</td>
+                                <td><strong>@history.NewPlan?.Name</strong></td>
+                                <td>
+                                    @if (history.ChangeType == SubBill.Models.PlanChangeType.Upgrade)
+                                    {
+                                        <span class="badge bg-success">Upgrade</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">Downgrade</span>
+                                    }
+                                </td>
+                                <td>@history.ChangedAt.ToString("dd MMM yyyy HH:mm") UTC</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>

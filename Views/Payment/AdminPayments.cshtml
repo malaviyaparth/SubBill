@@ -1,0 +1,84 @@
+@model List<SubBill.Models.Payment>
+@{
+    ViewData["Title"] = "Admin - Payments";
+    var currentStatus = ViewBag.CurrentStatus as SubBill.Models.PaymentStatus?;
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>All Payments (Admin)</h2>
+        <div>
+            <a asp-controller="Invoice" asp-action="AdminIndex" class="btn btn-outline-info me-2">Admin Invoices</a>
+            <a asp-controller="Plans" asp-action="Index" class="btn btn-outline-secondary">Manage Plans</a>
+        </div>
+    </div>
+
+    <div class="mb-3 d-flex gap-2">
+        <a asp-action="AdminPayments" class="btn btn-sm @(!currentStatus.HasValue ? "btn-primary" : "btn-outline-primary")">All</a>
+        <a asp-action="AdminPayments" asp-route-status="@SubBill.Models.PaymentStatus.Success" class="btn btn-sm @(currentStatus == SubBill.Models.PaymentStatus.Success ? "btn-success" : "btn-outline-success")">Success</a>
+        <a asp-action="AdminPayments" asp-route-status="@SubBill.Models.PaymentStatus.Pending" class="btn btn-sm @(currentStatus == SubBill.Models.PaymentStatus.Pending ? "btn-warning" : "btn-outline-warning")">Pending</a>
+        <a asp-action="AdminPayments" asp-route-status="@SubBill.Models.PaymentStatus.Failed" class="btn btn-sm @(currentStatus == SubBill.Models.PaymentStatus.Failed ? "btn-danger" : "btn-outline-danger")">Failed</a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="card shadow-sm border-0 text-center p-5">
+            <p class="text-muted mb-0">No payment records found matching criteria.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Gateway</th>
+                            <th>Status</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var payment in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <code>@payment.OrderId</code><br />
+                                    <small class="text-muted">Ref: @(payment.PaymentId ?? "-")</small>
+                                </td>
+                                <td>
+                                    <div>@(payment.User?.FullName ?? "N/A")</div>
+                                    <small class="text-muted">@(payment.User?.Email ?? payment.UserId)</small>
+                                </td>
+                                <td><strong>@payment.Currency @payment.Amount.ToString("F2")</strong></td>
+                                <td>@payment.PaymentGateway</td>
+                                <td>
+                                    @if (payment.Status == SubBill.Models.PaymentStatus.Success)
+                                    {
+                                        <span class="badge bg-success">Success</span>
+                                    }
+                                    else if (payment.Status == SubBill.Models.PaymentStatus.Pending)
+                                    {
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    }
+                                    else if (payment.Status == SubBill.Models.PaymentStatus.Failed)
+                                    {
+                                        <span class="badge bg-danger">Failed</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@payment.Status</span>
+                                    }
+                                </td>
+                                <td>@payment.CreatedAt.ToString("dd MMM yyyy HH:mm:ss") UTC</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
