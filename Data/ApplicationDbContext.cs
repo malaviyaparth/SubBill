@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SubBill.Models;
 
@@ -13,22 +13,90 @@ namespace SubBill.Data
 
         public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
         public DbSet<UserSubscription> UserSubscriptions { get; set; }
+        public DbSet<SubscriptionHistory> SubscriptionHistories { get; set; }
+        public DbSet<Payment> Payments { get; set; }
+        public DbSet<Invoice> Invoices { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
-            builder.Entity<UserSubscription>()
-                .HasOne(s => s.User)
-                .WithMany()
-                .HasForeignKey(s => s.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<UserSubscription>(entity =>
+            {
+                entity.HasOne(s => s.User)
+                    .WithMany()
+                    .HasForeignKey(s => s.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
-            builder.Entity<UserSubscription>()
-                .HasOne(s => s.Plan)
-                .WithMany()
-                .HasForeignKey(s => s.PlanId)
-                .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(s => s.Plan)
+                    .WithMany()
+                    .HasForeignKey(s => s.PlanId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.Property(s => s.Status)
+                    .HasConversion<string>();
+            });
+
+            builder.Entity<SubscriptionHistory>(entity =>
+            {
+                entity.HasOne(h => h.Subscription)
+                    .WithMany()
+                    .HasForeignKey(h => h.SubscriptionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(h => h.OldPlan)
+                    .WithMany()
+                    .HasForeignKey(h => h.OldPlanId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(h => h.NewPlan)
+                    .WithMany()
+                    .HasForeignKey(h => h.NewPlanId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.Property(h => h.ChangeType)
+                    .HasConversion<string>();
+            });
+
+            builder.Entity<Payment>(entity =>
+            {
+                entity.HasOne(p => p.User)
+                    .WithMany()
+                    .HasForeignKey(p => p.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(p => p.Subscription)
+                    .WithMany()
+                    .HasForeignKey(p => p.SubscriptionId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.Property(p => p.Status)
+                    .HasConversion<string>();
+            });
+
+            builder.Entity<Invoice>(entity =>
+            {
+                entity.HasOne(i => i.User)
+                    .WithMany()
+                    .HasForeignKey(i => i.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(i => i.Subscription)
+                    .WithMany()
+                    .HasForeignKey(i => i.SubscriptionId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(i => i.Payment)
+                    .WithMany()
+                    .HasForeignKey(i => i.PaymentId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(i => i.InvoiceNumber)
+                    .IsUnique();
+
+                entity.Property(i => i.Status)
+                    .HasConversion<string>();
+            });
 
             builder.Entity<SubscriptionPlan>(entity =>
             {

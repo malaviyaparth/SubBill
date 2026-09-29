@@ -1,0 +1,59 @@
+@model List<SubBill.Models.Invoice>
+@{
+    ViewData["Title"] = "My Invoices";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>My Invoices</h2>
+        <a asp-controller="Subscription" asp-action="MySubscription" class="btn btn-outline-primary">My Subscription</a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="card shadow-sm border-0 text-center p-5">
+            <p class="text-muted mb-0">No invoices generated yet.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Plan</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var invoice in Model)
+                        {
+                            <tr>
+                                <td><strong>@invoice.InvoiceNumber</strong></td>
+                                <td>@(invoice.Subscription?.Plan?.Name ?? "Subscription")</td>
+                                <td><strong>@invoice.Currency @invoice.TotalAmount.ToString("F2")</strong></td>
+                                <td>
+                                    <span class="badge @(invoice.Status == SubBill.Models.InvoiceStatus.Paid ? "bg-success" : "bg-warning text-dark")">
+                                        @invoice.Status
+                                    </span>
+                                </td>
+                                <td>@invoice.InvoiceDate.ToString("dd MMM yyyy")</td>
+                                <td class="text-end">
+                                    <a asp-action="Details" asp-route-id="@invoice.Id" class="btn btn-sm btn-outline-secondary me-1">View</a>
+                                    <a asp-action="Download" asp-route-id="@invoice.Id" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-file-earmark-pdf"></i> Download PDF
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>

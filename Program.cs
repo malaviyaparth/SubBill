@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using SubBill.Data;
 using SubBill.Models;
+using Microsoft.AspNetCore.Identity.UI.Services;
+using SubBill.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +25,11 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => {
     .AddDefaultTokenProviders();
 
 builder.Services.AddTransient<IEmailSender, EmailSender>();
+
+// Register Domain Services
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
