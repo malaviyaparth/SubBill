@@ -8,7 +8,10 @@ namespace SubBill.Controllers
     {
         public IActionResult Index()
         {
-            return View();
+            if (User.IsInRole("Admin"))
+                return RedirectToAction("Index", "Plans");
+
+            return RedirectToAction("Index", "Subscription");
         }
 
         public IActionResult Privacy()

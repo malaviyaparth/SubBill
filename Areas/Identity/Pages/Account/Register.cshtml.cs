@@ -22,6 +22,7 @@ using SubBill.Models;
 
 namespace SubBill.Areas.Identity.Pages.Account
 {
+    [AllowAnonymous]
     public class RegisterModel : PageModel
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
@@ -144,7 +145,7 @@ namespace SubBill.Areas.Identity.Pages.Account
                     else
                     {
                         await _signInManager.SignInAsync(user, isPersistent: false);
-                        return LocalRedirect(returnUrl);
+                        return LocalRedirect("~/Subscription");
                     }
                 }
                 foreach (var error in result.Errors)

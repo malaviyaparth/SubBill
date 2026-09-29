@@ -18,6 +18,7 @@ using SubBill.Models;
 
 namespace SubBill.Areas.Identity.Pages.Account
 {
+    [AllowAnonymous]
     public class LoginModel : PageModel
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
@@ -104,8 +105,6 @@ namespace SubBill.Areas.Identity.Pages.Account
 
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
         {
-            returnUrl ??= Url.Content("~/");
-
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
 
             if (ModelState.IsValid)
@@ -116,7 +115,12 @@ namespace SubBill.Areas.Identity.Pages.Account
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User logged in.");
-                    return LocalRedirect(returnUrl);
+                    var user = await _signInManager.UserManager.FindByEmailAsync(Input.Email);
+
+                    if (await _signInManager.UserManager.IsInRoleAsync(user, "Admin"))
+                        return LocalRedirect("~/Plans");
+
+                    return LocalRedirect("~/Subscription");
                 }
                 if (result.RequiresTwoFactor)
                 {
