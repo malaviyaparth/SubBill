@@ -23,4 +23,11 @@
     <PackageReference Include="QuestPDF" Version="2026.9.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="SubBill.Tests\**" />
+    <Content Remove="SubBill.Tests\**" />
+    <EmbeddedResource Remove="SubBill.Tests\**" />
+    <None Remove="SubBill.Tests\**" />
+  </ItemGroup>
+
 </Project>

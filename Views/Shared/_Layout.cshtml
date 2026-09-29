@@ -6,6 +6,7 @@
     <title>@ViewData["Title"] - SubBill</title>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/SubBill.styles.css" asp-append-version="true" />
 </head>
@@ -13,7 +14,9 @@
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">SubBill</a>
+                <a class="navbar-brand fw-bold text-primary" asp-area="" asp-controller="Home" asp-action="Index">
+                    <i class="bi bi-wallet2 me-1"></i>SubBill
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -31,28 +34,50 @@
                             @if (User.IsInRole("User"))
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-area="" asp-controller="Subscription" asp-action="MySubscription">My Subscription</a>
+                                    <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Subscription" asp-action="MySubscription">
+                                        <i class="bi bi-speedometer me-1"></i>Billing Dashboard
+                                    </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-area="" asp-controller="Invoice" asp-action="Index">Invoices</a>
+                                    <a class="nav-link text-dark" asp-area="" asp-controller="Invoice" asp-action="Index">
+                                        <i class="bi bi-receipt me-1"></i>Invoices
+                                    </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-area="" asp-controller="Payment" asp-action="History">Payments</a>
+                                    <a class="nav-link text-dark" asp-area="" asp-controller="Payment" asp-action="History">
+                                        <i class="bi bi-credit-card me-1"></i>Payments
+                                    </a>
                                 </li>
                             }
                             @if (User.IsInRole("Admin"))
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-area="" asp-controller="Plans" asp-action="Index">Manage Plans</a>
+                                    <a class="nav-link text-primary fw-semibold" asp-area="" asp-controller="Admin" asp-action="Index">
+                                        <i class="bi bi-speedometer2 me-1"></i>Dashboard
+                                    </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-area="" asp-controller="Subscription" asp-action="AdminHistory">Plan Transitions</a>
+                                    <a class="nav-link text-dark" asp-area="" asp-controller="Admin" asp-action="Users">Users</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-area="" asp-controller="Invoice" asp-action="AdminIndex">All Invoices</a>
+                                    <a class="nav-link text-dark" asp-area="" asp-controller="Admin" asp-action="Subscriptions">Subscriptions</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-area="" asp-controller="Payment" asp-action="AdminPayments">All Payments</a>
+                                    <a class="nav-link text-dark" asp-area="" asp-controller="Admin" asp-action="Payments">Payments</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-area="" asp-controller="Admin" asp-action="Invoices">Invoices</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-area="" asp-controller="Admin" asp-action="Coupons">
+                                        <i class="bi bi-ticket-perforated me-1"></i>Coupons
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-area="" asp-controller="Admin" asp-action="AuditLogs">Audit Logs</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-area="" asp-controller="Plans" asp-action="Index">Plans</a>
                                 </li>
                             }
                         }

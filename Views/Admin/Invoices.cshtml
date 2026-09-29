@@ -1,0 +1,141 @@
+@model SubBill.Models.AdminInvoiceListViewModel
+@{
+    ViewData["Title"] = "Invoice Management";
+}
+
+<div class="container-fluid py-4 px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-dark">
+                <i class="bi bi-receipt text-primary me-2"></i>Invoice Management
+            </h1>
+            <p class="text-muted small mb-0">Search tax invoices, filter by paid/pending status, and download PDF copies.</p>
+        </div>
+        <div class="mt-2 mt-sm-0">
+            <span class="badge bg-light text-dark border px-3 py-2">
+                Total Invoices: <strong>@Model.Invoices.TotalCount</strong>
+            </span>
+        </div>
+    </div>
+
+    <!-- Filters & Search Toolbar -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 p-3 bg-light">
+        <form method="get" asp-action="Invoices" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small text-muted mb-1">Search</label>
+                <input type="text" name="search" class="form-control form-control-sm bg-white" placeholder="Invoice #, Customer Email or Name..." value="@Model.Search" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm bg-white">
+                    <option value="">All Statuses</option>
+                    @foreach (var s in Enum.GetValues<SubBill.Models.InvoiceStatus>())
+                    {
+                        <option value="@s" selected="@(Model.Status == s)">@s</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">From Date</label>
+                <input type="date" name="fromDate" class="form-control form-control-sm bg-white" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">To Date</label>
+                <input type="date" name="toDate" class="form-control form-control-sm bg-white" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="col-md-2 d-flex gap-1">
+                <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-funnel me-1"></i>Filter</button>
+                <a asp-action="Invoices" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x-circle"></i></a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Invoices Table -->
+    <div class="card border-0 shadow-sm rounded-3">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Invoice Number</th>
+                        <th>Customer</th>
+                        <th>Plan</th>
+                        <th>Net Amount</th>
+                        <th>Tax (GST)</th>
+                        <th>Total Amount</th>
+                        <th>Status</th>
+                        <th>Invoice Date</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Invoices.Items.Any())
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-receipt fs-1"></i>
+                                <p class="mt-2 mb-0">No invoices match the specified criteria.</p>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var inv in Model.Invoices.Items)
+                        {
+                            <tr>
+                                <td>
+                                    <strong class="text-primary">@inv.InvoiceNumber</strong>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">@(inv.User?.FullName ?? inv.User?.UserName ?? "Customer")</div>
+                                    <small class="text-muted">@inv.User?.Email</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">
+                                        @(inv.Subscription?.Plan?.Name ?? "Plan")
+                                    </span>
+                                </td>
+                                <td>₹@inv.Amount.ToString("F2")</td>
+                                <td>₹@inv.TaxAmount.ToString("F2")</td>
+                                <td><strong>₹@inv.TotalAmount.ToString("F2")</strong></td>
+                                <td>
+                                    <span class="badge @(inv.Status == SubBill.Models.InvoiceStatus.Paid ? "bg-success" : "bg-warning text-dark")">
+                                        @inv.Status
+                                    </span>
+                                </td>
+                                <td>@inv.InvoiceDate.ToString("dd MMM yyyy")</td>
+                                <td class="text-end">
+                                    <a asp-action="DownloadInvoice" asp-route-id="@inv.Id" class="btn btn-sm btn-outline-primary" title="Download PDF Invoice">
+                                        <i class="bi bi-file-earmark-pdf me-1"></i>Download
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (Model.Invoices.TotalPages > 1)
+        {
+            <div class="card-footer bg-white border-top py-3 d-flex justify-content-between align-items-center">
+                <span class="small text-muted">Page @Model.Invoices.PageIndex of @Model.Invoices.TotalPages (Total: @Model.Invoices.TotalCount)</span>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(!Model.Invoices.HasPreviousPage ? "disabled" : "")">
+                        <a class="page-link" asp-action="Invoices" asp-route-page="@(Model.Invoices.PageIndex - 1)" asp-route-search="@Model.Search" asp-route-status="@Model.Status">Previous</a>
+                    </li>
+                    @for (int i = 1; i <= Model.Invoices.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == Model.Invoices.PageIndex ? "active" : "")">
+                            <a class="page-link" asp-action="Invoices" asp-route-page="@i" asp-route-search="@Model.Search" asp-route-status="@Model.Status">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(!Model.Invoices.HasNextPage ? "disabled" : "")">
+                        <a class="page-link" asp-action="Invoices" asp-route-page="@(Model.Invoices.PageIndex + 1)" asp-route-search="@Model.Search" asp-route-status="@Model.Status">Next</a>
+                    </li>
+                </ul>
+            </div>
+        }
+    </div>
+</div>

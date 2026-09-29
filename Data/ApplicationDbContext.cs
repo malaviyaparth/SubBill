@@ -16,6 +16,9 @@ namespace SubBill.Data
         public DbSet<SubscriptionHistory> SubscriptionHistories { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
+        public DbSet<Coupon> Coupons { get; set; }
+        public DbSet<CouponUsage> CouponUsages { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -139,6 +142,36 @@ namespace SubBill.Data
                     IsActive = true
                 }
             );
+
+            builder.Entity<Coupon>(entity =>
+            {
+                entity.HasIndex(c => c.Code).IsUnique();
+                entity.Property(c => c.DiscountType).HasConversion<string>();
+            });
+
+            builder.Entity<CouponUsage>(entity =>
+            {
+                entity.HasOne(u => u.Coupon)
+                    .WithMany()
+                    .HasForeignKey(u => u.CouponId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(u => u.User)
+                    .WithMany()
+                    .HasForeignKey(u => u.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(u => u.Subscription)
+                    .WithMany()
+                    .HasForeignKey(u => u.SubscriptionId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            builder.Entity<AuditLog>(entity =>
+            {
+                entity.HasIndex(a => a.Timestamp);
+                entity.HasIndex(a => a.Action);
+            });
         }
     }
 }

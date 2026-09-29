@@ -90,14 +90,177 @@ namespace SubBill.Controllers
         }
 
         // GET: /Subscription/MySubscription
+        [HttpGet]
         [Authorize(Roles = "User")]
-        public async Task<IActionResult> MySubscription()
+        public async Task<IActionResult> MySubscription(int paymentsPage = 1, int invoicesPage = 1, int historyPage = 1, string tab = "overview")
         {
             var userId = _userManager.GetUserId(User);
             if (string.IsNullOrEmpty(userId)) return Challenge();
 
-            var sub = await _subscriptionService.GetCurrentSubscriptionAsync(userId);
-            return View(sub);
+            var currentSub = await _subscriptionService.GetCurrentSubscriptionAsync(userId);
+            var availablePlans = await _context.SubscriptionPlans
+                .Where(p => p.IsActive)
+                .OrderBy(p => p.Price)
+                .ToListAsync();
+
+            const int pageSize = 5;
+            paymentsPage = Math.Max(1, paymentsPage);
+            invoicesPage = Math.Max(1, invoicesPage);
+            historyPage = Math.Max(1, historyPage);
+
+            // Usage & Subscription Summary
+            var summary = new BillingUsageSummary();
+            if (currentSub != null)
+            {
+                var totalPeriodTime = (currentSub.CurrentPeriodEnd - currentSub.CurrentPeriodStart).TotalDays;
+                var elapsedPeriodTime = (DateTime.UtcNow - currentSub.CurrentPeriodStart).TotalDays;
+                var remainingDays = (currentSub.CurrentPeriodEnd - DateTime.UtcNow).TotalDays;
+
+                summary.TotalPeriodDays = Math.Max(1, (int)Math.Ceiling(totalPeriodTime));
+                summary.DaysRemainingInPeriod = Math.Max(0, (int)Math.Ceiling(remainingDays));
+                summary.PeriodProgressPercent = Math.Clamp((int)((elapsedPeriodTime / Math.Max(1, totalPeriodTime)) * 100), 0, 100);
+                summary.DaysActive = Math.Max(0, (int)(DateTime.UtcNow - currentSub.StartDate).TotalDays);
+                summary.MemberSinceFormatted = currentSub.StartDate.ToString("dd MMM yyyy");
+            }
+
+            // Lifetime & Aggregates for user
+            summary.CompletedPaymentsCount = await _context.Payments
+                .CountAsync(p => p.UserId == userId && p.Status == PaymentStatus.Success);
+
+            summary.TotalSpent = await _context.Payments
+                .Where(p => p.UserId == userId && p.Status == PaymentStatus.Success)
+                .SumAsync(p => (decimal?)p.Amount) ?? 0m;
+
+            summary.TotalInvoicesCount = await _context.Invoices
+                .CountAsync(i => i.UserId == userId);
+
+            summary.PlanChangesCount = await _context.SubscriptionHistories
+                .CountAsync(h => h.Subscription != null && h.Subscription.UserId == userId);
+
+            // Paginated Payments with associated invoice linking
+            var paymentsQuery = _context.Payments
+                .Where(p => p.UserId == userId)
+                .OrderByDescending(p => p.CreatedAt);
+
+            var totalPaymentsCount = await paymentsQuery.CountAsync();
+            var paymentEntities = await paymentsQuery
+                .Skip((paymentsPage - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var paymentIds = paymentEntities.Select(p => p.Id).ToList();
+            var invoicesForPayments = await _context.Invoices
+                .Where(i => i.PaymentId.HasValue && paymentIds.Contains(i.PaymentId.Value))
+                .ToDictionaryAsync(i => i.PaymentId!.Value);
+
+            var paymentItems = paymentEntities.Select(p => new PaymentHistoryItemViewModel
+            {
+                Id = p.Id,
+                Date = p.PaymentDate ?? p.CreatedAt,
+                Amount = p.Amount,
+                Currency = p.Currency,
+                Status = p.Status,
+                OrderId = p.OrderId,
+                PaymentId = p.PaymentId,
+                InvoiceId = invoicesForPayments.TryGetValue(p.Id, out var inv) ? inv.Id : null,
+                InvoiceNumber = inv?.InvoiceNumber
+            }).ToList();
+
+            var pagedPayments = new PaginatedList<PaymentHistoryItemViewModel>(paymentItems, totalPaymentsCount, paymentsPage, pageSize);
+
+            // Paginated Invoices
+            var invoicesQuery = _context.Invoices
+                .Include(i => i.Subscription)
+                    .ThenInclude(s => s!.Plan)
+                .Where(i => i.UserId == userId)
+                .OrderByDescending(i => i.InvoiceDate);
+
+            var totalInvoicesCount = await invoicesQuery.CountAsync();
+            var invoiceItems = await invoicesQuery
+                .Skip((invoicesPage - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var pagedInvoices = new PaginatedList<Invoice>(invoiceItems, totalInvoicesCount, invoicesPage, pageSize);
+
+            // Paginated Subscription Transitions
+            var historiesQuery = _context.SubscriptionHistories
+                .Include(h => h.OldPlan)
+                .Include(h => h.NewPlan)
+                .Where(h => h.Subscription != null && h.Subscription.UserId == userId)
+                .OrderByDescending(h => h.ChangedAt);
+
+            var totalHistoriesCount = await historiesQuery.CountAsync();
+            var historyItems = await historiesQuery
+                .Skip((historyPage - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var pagedHistories = new PaginatedList<SubscriptionHistory>(historyItems, totalHistoriesCount, historyPage, pageSize);
+
+            var viewModel = new UserBillingDashboardViewModel
+            {
+                CurrentSubscription = currentSub,
+                AvailablePlans = availablePlans,
+                Summary = summary,
+                Payments = pagedPayments,
+                Invoices = pagedInvoices,
+                Histories = pagedHistories,
+                ActiveTab = tab
+            };
+
+            return View(viewModel);
+        }
+
+        // GET: /Subscription/Dashboard
+        [Authorize(Roles = "User")]
+        public async Task<IActionResult> Dashboard(int paymentsPage = 1, int invoicesPage = 1, int historyPage = 1, string tab = "overview")
+        {
+            return await MySubscription(paymentsPage, invoicesPage, historyPage, tab);
+        }
+
+        // POST: /Subscription/ToggleAutoRenew
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "User")]
+        public async Task<IActionResult> ToggleAutoRenew(int id, bool enable)
+        {
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId)) return Challenge();
+
+            try
+            {
+                await _subscriptionService.ToggleAutoRenewAsync(userId, id, enable);
+                TempData["Message"] = enable ? "Auto-renew has been successfully enabled." : "Auto-renew has been disabled.";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(MySubscription));
+        }
+
+        // POST: /Subscription/Renew
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "User")]
+        public async Task<IActionResult> Renew(int id)
+        {
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId)) return Challenge();
+
+            try
+            {
+                await _subscriptionService.RenewUserSubscriptionAsync(userId, id);
+                TempData["Message"] = "Your subscription has been successfully renewed!";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(MySubscription));
         }
 
         // GET: /Subscription/Cancel/5

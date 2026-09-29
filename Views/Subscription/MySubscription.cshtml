@@ -1,149 +1,755 @@
-@model SubBill.Models.UserSubscription
+@model SubBill.Models.UserBillingDashboardViewModel
 @{
-    ViewData["Title"] = "My Subscription";
+    ViewData["Title"] = "Billing Dashboard";
 }
 
 <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>My Subscription</h2>
+    <!-- Header with Quick Breadcrumb and Page Title -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
         <div>
-            <a asp-action="History" class="btn btn-outline-secondary me-2">Subscription History</a>
-            <a asp-controller="Invoice" asp-action="Index" class="btn btn-outline-info me-2">My Invoices</a>
-            <a asp-controller="Payment" asp-action="History" class="btn btn-outline-dark">Payment History</a>
+            <h1 class="h3 fw-bold mb-1 text-dark">
+                <i class="bi bi-wallet2 text-primary me-2"></i>Billing &amp; Subscription Dashboard
+            </h1>
+            <p class="text-muted small mb-0">Manage your subscription plan, billing details, payments, and invoices in one place.</p>
+        </div>
+        <div class="mt-2 mt-sm-0 d-flex gap-2">
+            <a asp-controller="Subscription" asp-action="Index" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-grid me-1"></i>All Plans
+            </a>
+            @if (Model.CurrentSubscription != null)
+            {
+                <a href="#plansModal" data-bs-toggle="modal" class="btn btn-primary btn-sm">
+                    <i class="bi bi-arrow-left-right me-1"></i>Upgrade / Change Plan
+                </a>
+            }
         </div>
     </div>
 
+    <!-- Alert / Notification Messages -->
     @if (TempData["Message"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @TempData["Message"]
+        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center mb-4 shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill fs-5 me-2"></i>
+            <div>@TempData["Message"]</div>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
     @if (TempData["Error"] != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @TempData["Error"]
+        <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center mb-4 shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i>
+            <div>@TempData["Error"]</div>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
-    @if (Model == null)
-    {
-        <div class="card shadow-sm border-0 text-center p-5">
-            <div class="card-body">
-                <i class="bi bi-x-circle text-muted" style="font-size: 3rem;"></i>
-                <h4 class="mt-3">No Active Subscription</h4>
-                <p class="text-muted">You currently do not have an active subscription plan.</p>
-                <a asp-action="Index" class="btn btn-primary mt-2">Browse Subscription Plans</a>
-            </div>
-        </div>
-    }
-    else
-    {
-        <div class="row">
-            <div class="col-lg-7">
-                <div class="card shadow-sm border-0 mb-4">
-                    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 text-primary">Current Plan Details</h5>
-                        @if (Model.Status == SubBill.Models.SubscriptionStatus.Active)
+    <!-- SECTION 1: Current Subscription Card -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                    <span class="fw-bold text-dark fs-5">
+                        <i class="bi bi-shield-check text-success me-2"></i>Current Subscription
+                    </span>
+                    @if (Model.CurrentSubscription != null)
+                    {
+                        @if (Model.CurrentSubscription.Status == SubBill.Models.SubscriptionStatus.Active)
                         {
-                            <span class="badge bg-success fs-6">Active</span>
+                            <span class="badge bg-success-subtle text-success border border-success px-3 py-2 rounded-pill fw-semibold">
+                                <i class="bi bi-check-circle me-1"></i>Active
+                            </span>
                         }
-                        else if (Model.Status == SubBill.Models.SubscriptionStatus.Trialing)
+                        else if (Model.CurrentSubscription.Status == SubBill.Models.SubscriptionStatus.Trialing)
                         {
-                            <span class="badge bg-info fs-6">Trial</span>
+                            <span class="badge bg-info-subtle text-info border border-info px-3 py-2 rounded-pill fw-semibold">
+                                <i class="bi bi-clock-history me-1"></i>Trialing
+                            </span>
                         }
-                        else if (Model.Status == SubBill.Models.SubscriptionStatus.Cancelled)
+                        else if (Model.CurrentSubscription.Status == SubBill.Models.SubscriptionStatus.Cancelled)
                         {
-                            <span class="badge bg-warning text-dark fs-6">Cancelled (Access until period end)</span>
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning px-3 py-2 rounded-pill fw-semibold">
+                                <i class="bi bi-exclamation-circle me-1"></i>Cancelled (Active until end of period)
+                            </span>
                         }
                         else
                         {
-                            <span class="badge bg-secondary fs-6">@Model.Status</span>
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary px-3 py-2 rounded-pill fw-semibold">
+                                @Model.CurrentSubscription.Status
+                            </span>
                         }
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="row mb-3">
-                            <div class="col-sm-5 text-muted">Plan Name</div>
-                            <div class="col-sm-7 fw-bold fs-5">@Model.Plan?.Name</div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-sm-5 text-muted">Price</div>
-                            <div class="col-sm-7 fw-bold">@Model.Plan?.Price.ToString("C") / @Model.Plan?.BillingCycle</div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-sm-5 text-muted">Billing Cycle</div>
-                            <div class="col-sm-7">@Model.Plan?.BillingCycle</div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-sm-5 text-muted">Current Period</div>
-                            <div class="col-sm-7">
-                                @Model.CurrentPeriodStart.ToString("dd MMM yyyy") &mdash; @Model.CurrentPeriodEnd.ToString("dd MMM yyyy")
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-sm-5 text-muted">Auto Renewal</div>
-                            <div class="col-sm-7">
-                                @if (Model.AutoRenew)
-                                {
-                                    <span class="badge bg-success-subtle text-success border border-success">Enabled</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary">Disabled (Expires on @Model.CurrentPeriodEnd.ToString("dd MMM yyyy"))</span>
-                                }
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-sm-5 text-muted">Next Billing Date</div>
-                            <div class="col-sm-7">
-                                @(Model.AutoRenew ? Model.CurrentPeriodEnd.ToString("dd MMM yyyy") : "N/A (Cancelled)")
-                            </div>
-                        </div>
-                        @if (Model.CancelledAt.HasValue)
-                        {
-                            <div class="alert alert-warning mt-3">
-                                <strong>Cancelled on:</strong> @Model.CancelledAt.Value.ToString("dd MMM yyyy HH:mm") UTC<br />
-                                <strong>Reason:</strong> @(Model.CancellationReason ?? "None provided")<br />
-                                <em>Your access remains active until <strong>@Model.CurrentPeriodEnd.ToString("dd MMM yyyy")</strong>.</em>
-                            </div>
-                        }
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary-subtle text-muted border px-3 py-2 rounded-pill">
+                            No Active Plan
+                        </span>
+                    }
+                </div>
 
-                        <hr class="my-4" />
-
-                        <div class="d-flex gap-2">
-                            <a asp-action="ChangePlan" class="btn btn-outline-primary">
-                                Change Plan (Upgrade / Downgrade)
+                <div class="card-body p-4">
+                    @if (Model.CurrentSubscription == null)
+                    {
+                        <!-- Empty State: No Active Subscription -->
+                        <div class="text-center py-4">
+                            <div class="rounded-circle bg-light d-inline-flex p-4 mb-3">
+                                <i class="bi bi-box-seam text-muted" style="font-size: 2.5rem;"></i>
+                            </div>
+                            <h5 class="fw-bold text-dark">No Active Subscription</h5>
+                            <p class="text-muted col-md-8 mx-auto mb-4">
+                                You do not have an active subscription plan right now. Choose a plan to unlock all premium features and services.
+                            </p>
+                            <a asp-action="Index" class="btn btn-primary px-4 py-2">
+                                <i class="bi bi-cart-plus me-1"></i>Browse Available Plans
                             </a>
-
-                            @if (Model.Status == SubBill.Models.SubscriptionStatus.Active && Model.AutoRenew)
-                            {
-                                <a asp-action="Cancel" asp-route-id="@Model.Id" class="btn btn-outline-danger">
-                                    Cancel Subscription
-                                </a>
-                            }
                         </div>
-                    </div>
+                    }
+                    else
+                    {
+                        <div class="row g-3">
+                            <!-- Plan Name & Price -->
+                            <div class="col-sm-6">
+                                <label class="text-muted small text-uppercase fw-semibold">Plan</label>
+                                <div class="fs-4 fw-bold text-primary">@Model.CurrentSubscription.Plan?.Name</div>
+                                <div class="text-muted small">@(Model.CurrentSubscription.Plan?.Description ?? "Full Access Subscription")</div>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="text-muted small text-uppercase fw-semibold">Price &amp; Cycle</label>
+                                <div class="fs-4 fw-bold text-dark">
+                                    ₹@Model.CurrentSubscription.Plan?.Price.ToString("F2")
+                                    <span class="fs-6 fw-normal text-muted">/ @Model.CurrentSubscription.Plan?.BillingCycle</span>
+                                </div>
+                                <div class="text-muted small">Billed automatically each @Model.CurrentSubscription.Plan?.BillingCycle.ToString().ToLower()</div>
+                            </div>
+
+                            <hr class="my-2" />
+
+                            <!-- Current Period & Next Billing Date -->
+                            <div class="col-sm-6">
+                                <label class="text-muted small text-uppercase fw-semibold">Current Billing Period</label>
+                                <div class="fw-semibold text-dark">
+                                    <i class="bi bi-calendar-event me-1 text-muted"></i>
+                                    @Model.CurrentSubscription.CurrentPeriodStart.ToString("dd MMM yyyy") &mdash; @Model.CurrentSubscription.CurrentPeriodEnd.ToString("dd MMM yyyy")
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="text-muted small text-uppercase fw-semibold">Next Billing Date</label>
+                                <div class="fw-semibold @(Model.CurrentSubscription.AutoRenew ? "text-dark" : "text-muted")">
+                                    <i class="bi bi-arrow-repeat me-1 text-muted"></i>
+                                    @if (Model.CurrentSubscription.AutoRenew)
+                                    {
+                                        <span>@Model.CurrentSubscription.CurrentPeriodEnd.ToString("dd MMM yyyy")</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Expires on @Model.CurrentSubscription.CurrentPeriodEnd.ToString("dd MMM yyyy") (Auto-renew off)</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Auto-Renew Status -->
+                            <div class="col-12">
+                                <div class="p-3 rounded-2 bg-light d-flex flex-wrap justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-bold small text-uppercase text-secondary mb-1">Auto-Renew Status</div>
+                                        @if (Model.CurrentSubscription.AutoRenew)
+                                        {
+                                            <span class="text-success fw-bold">
+                                                <i class="bi bi-toggle2-on fs-5 align-middle me-1"></i>Auto-renew is Enabled
+                                            </span>
+                                            <p class="text-muted small mb-0 mt-1">Your plan will renew automatically on @Model.CurrentSubscription.CurrentPeriodEnd.ToString("dd MMM yyyy").</p>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-secondary fw-bold">
+                                                <i class="bi bi-toggle2-off fs-5 align-middle me-1"></i>Auto-renew is Disabled
+                                            </span>
+                                            <p class="text-muted small mb-0 mt-1">Your subscription will end on @Model.CurrentSubscription.CurrentPeriodEnd.ToString("dd MMM yyyy").</p>
+                                        }
+                                    </div>
+                                    <div class="mt-2 mt-sm-0">
+                                        <form asp-action="ToggleAutoRenew" method="post" class="d-inline action-form">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@Model.CurrentSubscription.Id" />
+                                            <input type="hidden" name="enable" value="@((!Model.CurrentSubscription.AutoRenew).ToString().ToLower())" />
+                                            <button type="submit" class="btn btn-sm @(Model.CurrentSubscription.AutoRenew ? "btn-outline-secondary" : "btn-outline-success")">
+                                                <span class="btn-spinner spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+                                                <i class="bi @(Model.CurrentSubscription.AutoRenew ? "bi-pause-circle" : "bi-play-circle") me-1"></i>
+                                                @(Model.CurrentSubscription.AutoRenew ? "Disable Auto-Renew" : "Enable Auto-Renew")
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (Model.CurrentSubscription.CancelledAt.HasValue)
+                            {
+                                <div class="col-12">
+                                    <div class="alert alert-warning mb-0 border-0 rounded-2">
+                                        <div class="d-flex align-items-start">
+                                            <i class="bi bi-info-circle-fill text-warning me-2 mt-1"></i>
+                                            <div>
+                                                <strong>Cancellation Active:</strong> Requested on @Model.CurrentSubscription.CancelledAt.Value.ToString("dd MMM yyyy HH:mm") UTC.<br />
+                                                <span class="small text-muted">Reason: @(Model.CurrentSubscription.CancellationReason ?? "Customer request")</span><br />
+                                                <span class="small">You maintain full benefits until <strong>@Model.CurrentSubscription.CurrentPeriodEnd.ToString("dd MMM yyyy")</strong>.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Actions Section (Upgrade, Downgrade, Cancel, Renew, AutoRenew) -->
+                            <div class="col-12 pt-3 border-top d-flex flex-wrap gap-2 align-items-center">
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#plansModal">
+                                    <i class="bi bi-arrow-up-circle me-1"></i>Upgrade / Downgrade
+                                </button>
+
+                                @if (Model.CurrentSubscription.Status == SubBill.Models.SubscriptionStatus.Active && Model.CurrentSubscription.AutoRenew)
+                                {
+                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                                        <i class="bi bi-x-circle me-1"></i>Cancel Plan
+                                    </button>
+                                }
+                                else if (Model.CurrentSubscription.Status == SubBill.Models.SubscriptionStatus.Cancelled || !Model.CurrentSubscription.AutoRenew)
+                                {
+                                    <form asp-action="Renew" method="post" class="d-inline action-form">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@Model.CurrentSubscription.Id" />
+                                        <button type="submit" class="btn btn-success">
+                                            <span class="btn-spinner spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+                                            <i class="bi bi-arrow-clockwise me-1"></i>Renew Subscription
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    }
                 </div>
             </div>
+        </div>
 
-            <div class="col-lg-5">
-                <div class="card shadow-sm border-0 mb-4 bg-light">
-                    <div class="card-body p-4">
-                        <h6 class="text-uppercase text-muted fw-bold mb-3">Subscription FAQ</h6>
-                        <h6>How do billing cycles work?</h6>
-                        <p class="text-muted small">Subscriptions are billed either monthly, quarterly, or yearly depending on your chosen plan.</p>
+        <!-- SECTION 2: Usage / Subscription Summary -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <span class="fw-bold text-dark fs-5">
+                        <i class="bi bi-bar-chart-line text-primary me-2"></i>Usage &amp; Account Summary
+                    </span>
+                </div>
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <!-- Period Progress -->
+                        @if (Model.CurrentSubscription != null)
+                        {
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small text-muted fw-semibold">Current Period Progress</span>
+                                    <span class="small fw-bold text-dark">@Model.Summary.PeriodProgressPercent%</span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: @Model.Summary.PeriodProgressPercent%;" aria-valuenow="@Model.Summary.PeriodProgressPercent" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-1 text-muted small">
+                                    <span>@Model.Summary.DaysActive days active</span>
+                                    <span>@Model.Summary.DaysRemainingInPeriod days remaining</span>
+                                </div>
+                            </div>
+                        }
 
-                        <h6>What happens if I cancel?</h6>
-                        <p class="text-muted small">Cancellation turns off auto-renewal. Your subscription remains active and accessible until the end of your prepaid period.</p>
+                        <!-- Quick KPI Grid -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <div class="p-3 bg-light rounded-2 text-center">
+                                    <div class="text-muted small text-uppercase">Total Spent</div>
+                                    <div class="fs-5 fw-bold text-dark mt-1">₹@Model.Summary.TotalSpent.ToString("F2")</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-light rounded-2 text-center">
+                                    <div class="text-muted small text-uppercase">Paid Orders</div>
+                                    <div class="fs-5 fw-bold text-dark mt-1">@Model.Summary.CompletedPaymentsCount</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-light rounded-2 text-center">
+                                    <div class="text-muted small text-uppercase">Total Invoices</div>
+                                    <div class="fs-5 fw-bold text-dark mt-1">@Model.Summary.TotalInvoicesCount</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-light rounded-2 text-center">
+                                    <div class="text-muted small text-uppercase">Plan Changes</div>
+                                    <div class="fs-5 fw-bold text-dark mt-1">@Model.Summary.PlanChangesCount</div>
+                                </div>
+                            </div>
+                        </div>
 
-                        <h6>Can I change plans?</h6>
-                        <p class="text-muted small">Yes! You can upgrade or downgrade anytime through the "Change Plan" option.</p>
+                        @if (Model.CurrentSubscription != null)
+                        {
+                            <div class="small text-muted text-center">
+                                <i class="bi bi-clock me-1"></i>Member since <strong>@Model.Summary.MemberSinceFormatted</strong>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="bg-primary-subtle text-primary p-3 rounded-2 mt-3">
+                        <div class="fw-bold small mb-1"><i class="bi bi-info-circle me-1"></i>Billing Guarantee</div>
+                        <div class="small">
+                            Invoices are automatically generated and sent upon successful payment verification with full GST breakdowns.
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    }
+    </div>
+
+    <!-- TABS NAVIGATION: Payment History, Invoices, Subscription History -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-header bg-white border-bottom pt-3 pb-0 px-4">
+            <ul class="nav nav-tabs card-header-tabs" id="billingTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link @(Model.ActiveTab == "overview" || Model.ActiveTab == "payments" ? "active" : "") fw-semibold" id="payments-tab" data-bs-toggle="tab" data-bs-target="#paymentsTabPane" type="button" role="tab">
+                        <i class="bi bi-credit-card me-1"></i>Payment History
+                        <span class="badge bg-light text-dark ms-1">@Model.Payments.TotalCount</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link @(Model.ActiveTab == "invoices" ? "active" : "") fw-semibold" id="invoices-tab" data-bs-toggle="tab" data-bs-target="#invoicesTabPane" type="button" role="tab">
+                        <i class="bi bi-receipt me-1"></i>Invoice History
+                        <span class="badge bg-light text-dark ms-1">@Model.Invoices.TotalCount</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link @(Model.ActiveTab == "history" ? "active" : "") fw-semibold" id="history-tab" data-bs-toggle="tab" data-bs-target="#historyTabPane" type="button" role="tab">
+                        <i class="bi bi-clock-history me-1"></i>Subscription History
+                        <span class="badge bg-light text-dark ms-1">@Model.Histories.TotalCount</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="tab-content" id="billingTabContent">
+
+                <!-- SECTION 3: Payment History -->
+                <div class="tab-pane fade @(Model.ActiveTab == "overview" || Model.ActiveTab == "payments" ? "show active" : "") p-4" id="paymentsTabPane" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-dark mb-0">Payments Overview</h5>
+                        <a asp-controller="Payment" asp-action="History" class="btn btn-sm btn-outline-secondary">
+                            View All Detailed Payments
+                        </a>
+                    </div>
+
+                    @if (!Model.Payments.Items.Any())
+                    {
+                        <!-- Empty State: Payments -->
+                        <div class="text-center py-5">
+                            <i class="bi bi-credit-card text-muted" style="font-size: 2.5rem;"></i>
+                            <h6 class="fw-bold text-dark mt-2">No Payment History Yet</h6>
+                            <p class="text-muted small mb-0">When payments are processed for your subscription, they will be listed here.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Amount</th>
+                                        <th>Payment Status</th>
+                                        <th>Payment ID</th>
+                                        <th>Invoice</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var p in Model.Payments.Items)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="fw-semibold">@p.Date.ToString("dd MMM yyyy")</div>
+                                                <small class="text-muted">@p.Date.ToString("HH:mm") UTC</small>
+                                            </td>
+                                            <td>
+                                                <strong>@p.Currency @p.Amount.ToString("F2")</strong>
+                                            </td>
+                                            <td>
+                                                @if (p.Status == SubBill.Models.PaymentStatus.Success)
+                                                {
+                                                    <span class="badge bg-success-subtle text-success border border-success">
+                                                        <i class="bi bi-check-circle me-1"></i>Success
+                                                    </span>
+                                                }
+                                                else if (p.Status == SubBill.Models.PaymentStatus.Pending)
+                                                {
+                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">
+                                                        <i class="bi bi-clock me-1"></i>Pending
+                                                    </span>
+                                                }
+                                                else if (p.Status == SubBill.Models.PaymentStatus.Failed)
+                                                {
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger">
+                                                        <i class="bi bi-x-circle me-1"></i>Failed
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">@p.Status</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <code class="text-dark bg-light px-2 py-1 rounded small">
+                                                    @(string.IsNullOrEmpty(p.PaymentId) ? p.OrderId : p.PaymentId)
+                                                </code>
+                                            </td>
+                                            <td>
+                                                @if (p.InvoiceId.HasValue)
+                                                {
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a asp-controller="Invoice" asp-action="Details" asp-route-id="@p.InvoiceId.Value" class="btn btn-outline-secondary btn-sm" title="View Invoice">
+                                                            <i class="bi bi-eye"></i> @p.InvoiceNumber
+                                                        </a>
+                                                        <a asp-controller="Invoice" asp-action="Download" asp-route-id="@p.InvoiceId.Value" class="btn btn-outline-primary btn-sm" title="Download PDF">
+                                                            <i class="bi bi-download"></i>
+                                                        </a>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">&mdash;</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination: Payments -->
+                        @if (Model.Payments.TotalPages > 1)
+                        {
+                            <nav class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top" aria-label="Payments pagination">
+                                <span class="small text-muted">Page @Model.Payments.PageIndex of @Model.Payments.TotalPages (Total: @Model.Payments.TotalCount)</span>
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item @(!Model.Payments.HasPreviousPage ? "disabled" : "")">
+                                        <a class="page-link" asp-action="MySubscription" asp-route-paymentsPage="@(Model.Payments.PageIndex - 1)" asp-route-tab="payments">Previous</a>
+                                    </li>
+                                    @for (int i = 1; i <= Model.Payments.TotalPages; i++)
+                                    {
+                                        <li class="page-item @(i == Model.Payments.PageIndex ? "active" : "")">
+                                            <a class="page-link" asp-action="MySubscription" asp-route-paymentsPage="@i" asp-route-tab="payments">@i</a>
+                                        </li>
+                                    }
+                                    <li class="page-item @(!Model.Payments.HasNextPage ? "disabled" : "")">
+                                        <a class="page-link" asp-action="MySubscription" asp-route-paymentsPage="@(Model.Payments.PageIndex + 1)" asp-route-tab="payments">Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        }
+                    }
+                </div>
+
+                <!-- SECTION 4: Invoice History -->
+                <div class="tab-pane fade @(Model.ActiveTab == "invoices" ? "show active" : "") p-4" id="invoicesTabPane" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-dark mb-0">Tax Invoices</h5>
+                        <a asp-controller="Invoice" asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                            View All Invoices
+                        </a>
+                    </div>
+
+                    @if (!Model.Invoices.Items.Any())
+                    {
+                        <!-- Empty State: Invoices -->
+                        <div class="text-center py-5">
+                            <i class="bi bi-file-earmark-text text-muted" style="font-size: 2.5rem;"></i>
+                            <h6 class="fw-bold text-dark mt-2">No Invoices Available</h6>
+                            <p class="text-muted small mb-0">Invoices will automatically appear here once your payments are finalized.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Invoice Number</th>
+                                        <th>Date</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Download</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var inv in Model.Invoices.Items)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <a asp-controller="Invoice" asp-action="Details" asp-route-id="@inv.Id" class="fw-bold text-primary text-decoration-none">
+                                                    @inv.InvoiceNumber
+                                                </a>
+                                                <div class="small text-muted">@(inv.Subscription?.Plan?.Name ?? "Subscription")</div>
+                                            </td>
+                                            <td>@inv.InvoiceDate.ToString("dd MMM yyyy")</td>
+                                            <td><strong>@inv.Currency @inv.TotalAmount.ToString("F2")</strong></td>
+                                            <td>
+                                                <span class="badge @(inv.Status == SubBill.Models.InvoiceStatus.Paid ? "bg-success" : "bg-warning text-dark")">
+                                                    @inv.Status
+                                                </span>
+                                            </td>
+                                            <td class="text-end">
+                                                <a asp-controller="Invoice" asp-action="Download" asp-route-id="@inv.Id" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination: Invoices -->
+                        @if (Model.Invoices.TotalPages > 1)
+                        {
+                            <nav class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top" aria-label="Invoices pagination">
+                                <span class="small text-muted">Page @Model.Invoices.PageIndex of @Model.Invoices.TotalPages (Total: @Model.Invoices.TotalCount)</span>
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item @(!Model.Invoices.HasPreviousPage ? "disabled" : "")">
+                                        <a class="page-link" asp-action="MySubscription" asp-route-invoicesPage="@(Model.Invoices.PageIndex - 1)" asp-route-tab="invoices">Previous</a>
+                                    </li>
+                                    @for (int i = 1; i <= Model.Invoices.TotalPages; i++)
+                                    {
+                                        <li class="page-item @(i == Model.Invoices.PageIndex ? "active" : "")">
+                                            <a class="page-link" asp-action="MySubscription" asp-route-invoicesPage="@i" asp-route-tab="invoices">@i</a>
+                                        </li>
+                                    }
+                                    <li class="page-item @(!Model.Invoices.HasNextPage ? "disabled" : "")">
+                                        <a class="page-link" asp-action="MySubscription" asp-route-invoicesPage="@(Model.Invoices.PageIndex + 1)" asp-route-tab="invoices">Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        }
+                    }
+                </div>
+
+                <!-- SECTION 5: Subscription History -->
+                <div class="tab-pane fade @(Model.ActiveTab == "history" ? "show active" : "") p-4" id="historyTabPane" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-dark mb-0">Plan Transitions &amp; Changes</h5>
+                        <a asp-action="History" class="btn btn-sm btn-outline-secondary">
+                            View All Transitions
+                        </a>
+                    </div>
+
+                    @if (!Model.Histories.Items.Any())
+                    {
+                        <!-- Empty State: History -->
+                        <div class="text-center py-5">
+                            <i class="bi bi-clock-history text-muted" style="font-size: 2.5rem;"></i>
+                            <h6 class="fw-bold text-dark mt-2">No Plan Transition History</h6>
+                            <p class="text-muted small mb-0">Whenever you upgrade or downgrade your plan, the changes will be logged here.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Previous Plan</th>
+                                        <th>New Plan</th>
+                                        <th>Upgrade / Downgrade</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var h in Model.Histories.Items)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-light text-dark border px-2 py-1">
+                                                    @(h.OldPlan?.Name ?? "Plan #" + h.OldPlanId)
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <strong class="text-primary">
+                                                    @(h.NewPlan?.Name ?? "Plan #" + h.NewPlanId)
+                                                </strong>
+                                            </td>
+                                            <td>
+                                                @if (h.ChangeType == SubBill.Models.PlanChangeType.Upgrade)
+                                                {
+                                                    <span class="badge bg-success-subtle text-success border border-success">
+                                                        <i class="bi bi-arrow-up me-1"></i>Upgrade
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">
+                                                        <i class="bi bi-arrow-down me-1"></i>Downgrade
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="fw-semibold">@h.ChangedAt.ToString("dd MMM yyyy")</span>
+                                                <small class="text-muted">@h.ChangedAt.ToString("HH:mm") UTC</small>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination: Subscription History -->
+                        @if (Model.Histories.TotalPages > 1)
+                        {
+                            <nav class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top" aria-label="History pagination">
+                                <span class="small text-muted">Page @Model.Histories.PageIndex of @Model.Histories.TotalPages (Total: @Model.Histories.TotalCount)</span>
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item @(!Model.Histories.HasPreviousPage ? "disabled" : "")">
+                                        <a class="page-link" asp-action="MySubscription" asp-route-historyPage="@(Model.Histories.PageIndex - 1)" asp-route-tab="history">Previous</a>
+                                    </li>
+                                    @for (int i = 1; i <= Model.Histories.TotalPages; i++)
+                                    {
+                                        <li class="page-item @(i == Model.Histories.PageIndex ? "active" : "")">
+                                            <a class="page-link" asp-action="MySubscription" asp-route-historyPage="@i" asp-route-tab="history">@i</a>
+                                        </li>
+                                    }
+                                    <li class="page-item @(!Model.Histories.HasNextPage ? "disabled" : "")">
+                                        <a class="page-link" asp-action="MySubscription" asp-route-historyPage="@(Model.Histories.PageIndex + 1)" asp-route-tab="history">Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- MODAL: Upgrade / Downgrade Plan Selector -->
+<div class="modal fade" id="plansModal" tabindex="-1" aria-labelledby="plansModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom py-3">
+                <h5 class="modal-title fw-bold" id="plansModalLabel">
+                    <i class="bi bi-arrow-up-right-circle text-primary me-2"></i>Change Subscription Plan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-4">
+                    Select a plan to upgrade or downgrade your active subscription. Changes take effect immediately.
+                </p>
+
+                <div class="row g-3">
+                    @foreach (var plan in Model.AvailablePlans)
+                    {
+                        var isCurrent = Model.CurrentSubscription != null && Model.CurrentSubscription.PlanId == plan.Id;
+                        var isUpgrade = Model.CurrentSubscription != null && plan.Price > (Model.CurrentSubscription.Plan?.Price ?? 0);
+
+                        <div class="col-md-4">
+                            <div class="card h-100 @(isCurrent ? "border-primary bg-primary-subtle" : "border") text-center p-3 rounded-3 position-relative">
+                                @if (isCurrent)
+                                {
+                                    <span class="position-absolute top-0 start-50 translate-middle badge bg-primary">
+                                        Current Plan
+                                    </span>
+                                }
+                                <h6 class="fw-bold mt-2">@plan.Name</h6>
+                                <p class="text-muted small mb-2">@plan.Description</p>
+                                <div class="fs-4 fw-bold text-dark my-2">
+                                    ₹@plan.Price.ToString("F2")
+                                    <span class="fs-6 fw-normal text-muted">/ @plan.BillingCycle</span>
+                                </div>
+
+                                <div class="mt-auto pt-3">
+                                    @if (isCurrent)
+                                    {
+                                        <button class="btn btn-outline-primary btn-sm w-100" disabled>Active</button>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="ConfirmChangePlan" method="post" class="action-form">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="newPlanId" value="@plan.Id" />
+                                            <button type="submit" class="btn btn-sm w-100 @(isUpgrade ? "btn-success" : "btn-warning")">
+                                                <span class="btn-spinner spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+                                                <i class="bi @(isUpgrade ? "bi-arrow-up" : "bi-arrow-down") me-1"></i>
+                                                @(isUpgrade ? "Upgrade" : "Downgrade")
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Cancel Subscription -->
+@if (Model.CurrentSubscription != null)
+{
+    <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <form asp-action="Cancel" method="post" class="action-form">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.CurrentSubscription.Id" />
+
+                    <div class="modal-header border-bottom py-3">
+                        <h5 class="modal-title fw-bold text-danger" id="cancelModalLabel">
+                            <i class="bi bi-exclamation-triangle me-2"></i>Cancel Subscription
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <p class="text-dark mb-2">
+                            Are you sure you want to cancel your <strong>@Model.CurrentSubscription.Plan?.Name</strong> subscription?
+                        </p>
+                        <div class="alert alert-info py-2 px-3 small mb-3">
+                            <i class="bi bi-info-circle me-1"></i>You will retain full access until the end of your billing cycle on <strong>@Model.CurrentSubscription.CurrentPeriodEnd.ToString("dd MMM yyyy")</strong>.
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Cancellation Reason (optional):</label>
+                            <textarea name="reason" rows="3" class="form-control" placeholder="Please let us know how we can improve..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top py-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep Subscription</button>
+                        <button type="submit" class="btn btn-danger">
+                            <span class="btn-spinner spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+                            Confirm Cancellation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Loading spinner on action submissions
+            const forms = document.querySelectorAll('.action-form');
+            forms.forEach(function (form) {
+                form.addEventListener('submit', function () {
+                    const btn = form.querySelector('button[type="submit"]');
+                    if (btn) {
+                        btn.disabled = true;
+                        const spinner = btn.querySelector('.btn-spinner');
+                        if (spinner) {
+                            spinner.classList.remove('d-none');
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+}

@@ -1,0 +1,185 @@
+@model SubBill.Models.UserSubscription
+@{
+    ViewData["Title"] = $"Subscription #{Model.Id}";
+    var payments = ViewBag.Payments as List<SubBill.Models.Payment> ?? new();
+    var invoices = ViewBag.Invoices as List<SubBill.Models.Invoice> ?? new();
+    var histories = ViewBag.Histories as List<SubBill.Models.SubscriptionHistory> ?? new();
+}
+
+<div class="container-fluid py-4 px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <div class="mb-1">
+                <a asp-action="Subscriptions" class="text-decoration-none text-muted small">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Subscriptions
+                </a>
+            </div>
+            <h1 class="h3 fw-bold mb-0 text-dark">
+                Subscription #@Model.Id &mdash; @Model.Plan?.Name
+            </h1>
+        </div>
+        <div class="mt-2 mt-sm-0">
+            <span class="badge @(Model.Status == SubBill.Models.SubscriptionStatus.Active ? "bg-success" : "bg-secondary") fs-6 px-3 py-2">
+                @Model.Status
+            </span>
+        </div>
+    </div>
+
+    <!-- Overview Card -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-4">
+                <h5 class="fw-bold text-dark border-bottom pb-3 mb-3">Subscription Details</h5>
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label class="text-muted small text-uppercase">Plan</label>
+                        <div class="fw-bold fs-5 text-primary">@Model.Plan?.Name</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small text-uppercase">Price / Cycle</label>
+                        <div class="fw-bold fs-5 text-dark">₹@Model.Plan?.Price.ToString("F2") / @Model.Plan?.BillingCycle</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small text-uppercase">Start Date</label>
+                        <div class="fw-semibold">@Model.StartDate.ToString("dd MMM yyyy HH:mm") UTC</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small text-uppercase">Current Period End</label>
+                        <div class="fw-semibold">@Model.CurrentPeriodEnd.ToString("dd MMM yyyy HH:mm") UTC</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small text-uppercase">Auto-Renew</label>
+                        <div>
+                            @if (Model.AutoRenew)
+                            {
+                                <span class="badge bg-success">Enabled</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Disabled</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small text-uppercase">Created At</label>
+                        <div>@Model.CreatedAt.ToString("dd MMM yyyy HH:mm") UTC</div>
+                    </div>
+                    @if (Model.CancelledAt.HasValue)
+                    {
+                        <div class="col-12">
+                            <div class="alert alert-warning mb-0 small">
+                                <strong>Cancelled:</strong> @Model.CancelledAt.Value.ToString("dd MMM yyyy")<br />
+                                <strong>Reason:</strong> @(Model.CancellationReason ?? "None specified")
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-4">
+                <h5 class="fw-bold text-dark border-bottom pb-3 mb-3">Subscribed User</h5>
+                <div class="mb-3">
+                    <label class="text-muted small text-uppercase">Name</label>
+                    <div class="fw-bold fs-6">@(string.IsNullOrWhiteSpace(Model.User?.FullName) ? "No Name" : Model.User.FullName)</div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small text-uppercase">Email</label>
+                    <div class="fw-bold">@Model.User?.Email</div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small text-uppercase">User ID</label>
+                    <div><code>@Model.UserId</code></div>
+                </div>
+                <div>
+                    <a asp-action="UserDetails" asp-route-id="@Model.UserId" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-person"></i> View Complete User Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Related Payments, Invoices & Transitions -->
+    <div class="row g-4">
+        <!-- Payments -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-3 p-4">
+                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-credit-card me-2"></i>Linked Payments (@payments.Count)</h5>
+                @if (!payments.Any())
+                {
+                    <p class="text-muted small mb-0">No payment records linked directly to this subscription.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Order</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var p in payments)
+                                {
+                                    <tr>
+                                        <td><code>@p.OrderId</code></td>
+                                        <td><strong>@p.Currency @p.Amount.ToString("F2")</strong></td>
+                                        <td><span class="badge @(p.Status == SubBill.Models.PaymentStatus.Success ? "bg-success" : "bg-danger")">@p.Status</span></td>
+                                        <td><small class="text-muted">@p.CreatedAt.ToString("dd MMM yyyy")</small></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Invoices -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-3 p-4">
+                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-receipt me-2"></i>Invoices (@invoices.Count)</h5>
+                @if (!invoices.Any())
+                {
+                    <p class="text-muted small mb-0">No invoices issued for this subscription yet.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Download</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var inv in invoices)
+                                {
+                                    <tr>
+                                        <td><strong>@inv.InvoiceNumber</strong></td>
+                                        <td><strong>@inv.Currency @inv.TotalAmount.ToString("F2")</strong></td>
+                                        <td><span class="badge bg-success">@inv.Status</span></td>
+                                        <td class="text-end">
+                                            <a asp-action="DownloadInvoice" asp-route-id="@inv.Id" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-download"></i> PDF
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

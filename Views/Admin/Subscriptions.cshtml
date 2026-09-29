@@ -1,0 +1,182 @@
+@model SubBill.Models.AdminSubscriptionListViewModel
+@{
+    ViewData["Title"] = "Subscription Management";
+}
+
+<div class="container-fluid py-4 px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-dark">
+                <i class="bi bi-box-seam text-primary me-2"></i>Subscription Management
+            </h1>
+            <p class="text-muted small mb-0">Search, filter, and inspect user subscription contracts and statuses.</p>
+        </div>
+        <div class="mt-2 mt-sm-0">
+            <span class="badge bg-light text-dark border px-3 py-2">
+                Total Subscriptions: <strong>@Model.Subscriptions.TotalCount</strong>
+            </span>
+        </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 p-3 bg-light">
+        <form method="get" asp-action="Subscriptions" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small text-muted mb-1">Search</label>
+                <input type="text" name="search" class="form-control form-control-sm bg-white" placeholder="User email, name, or plan..." value="@Model.Search" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm bg-white">
+                    <option value="">All Statuses</option>
+                    @foreach (var s in Enum.GetValues<SubBill.Models.SubscriptionStatus>())
+                    {
+                        <option value="@s" selected="@(Model.Status == s)">@s</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Plan</label>
+                <select name="planId" class="form-select form-select-sm bg-white">
+                    <option value="">All Plans</option>
+                    @foreach (var p in Model.Plans)
+                    {
+                        <option value="@p.Id" selected="@(Model.PlanId == p.Id)">@p.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">From Date</label>
+                <input type="date" name="fromDate" class="form-control form-control-sm bg-white" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">To Date</label>
+                <input type="date" name="toDate" class="form-control form-control-sm bg-white" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="col-md-1 d-flex gap-1">
+                <button type="submit" class="btn btn-sm btn-primary w-100" title="Apply Filters">
+                    <i class="bi bi-funnel"></i>
+                </button>
+                <a asp-action="Subscriptions" class="btn btn-sm btn-outline-secondary" title="Reset Filters">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Subscriptions Table -->
+    <div class="card border-0 shadow-sm rounded-3">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>User</th>
+                        <th>Plan</th>
+                        <th>Status</th>
+                        <th>Current Period</th>
+                        <th>Auto-Renew</th>
+                        <th>Start Date</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Subscriptions.Items.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-box-seam fs-1"></i>
+                                <p class="mt-2 mb-0">No subscriptions match the selected criteria.</p>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var sub in Model.Subscriptions.Items)
+                        {
+                            <tr>
+                                <td>#@sub.Id</td>
+                                <td>
+                                    <div class="fw-bold">@(sub.User?.FullName ?? sub.User?.UserName ?? "User")</div>
+                                    <small class="text-muted">@sub.User?.Email</small>
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-primary">@sub.Plan?.Name</span>
+                                    <div class="small text-muted">₹@sub.Plan?.Price.ToString("F2") / @sub.Plan?.BillingCycle</div>
+                                </td>
+                                <td>
+                                    @if (sub.Status == SubBill.Models.SubscriptionStatus.Active)
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else if (sub.Status == SubBill.Models.SubscriptionStatus.Trialing)
+                                    {
+                                        <span class="badge bg-info">Trial</span>
+                                    }
+                                    else if (sub.Status == SubBill.Models.SubscriptionStatus.Cancelled)
+                                    {
+                                        <span class="badge bg-warning text-dark">Cancelled</span>
+                                    }
+                                    else if (sub.Status == SubBill.Models.SubscriptionStatus.Expired)
+                                    {
+                                        <span class="badge bg-secondary">Expired</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-dark">@sub.Status</span>
+                                    }
+                                </td>
+                                <td>
+                                    <small class="text-dark fw-semibold">
+                                        @sub.CurrentPeriodStart.ToString("dd MMM yyyy") &mdash; @sub.CurrentPeriodEnd.ToString("dd MMM yyyy")
+                                    </small>
+                                </td>
+                                <td>
+                                    @if (sub.AutoRenew)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success">ON</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border">OFF</span>
+                                    }
+                                </td>
+                                <td>
+                                    <small class="text-muted">@sub.StartDate.ToString("dd MMM yyyy")</small>
+                                </td>
+                                <td class="text-end">
+                                    <a asp-action="SubscriptionDetails" asp-route-id="@sub.Id" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> Details
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (Model.Subscriptions.TotalPages > 1)
+        {
+            <div class="card-footer bg-white border-top py-3 d-flex justify-content-between align-items-center">
+                <span class="small text-muted">Page @Model.Subscriptions.PageIndex of @Model.Subscriptions.TotalPages (Total: @Model.Subscriptions.TotalCount)</span>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(!Model.Subscriptions.HasPreviousPage ? "disabled" : "")">
+                        <a class="page-link" asp-action="Subscriptions" asp-route-page="@(Model.Subscriptions.PageIndex - 1)" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-planId="@Model.PlanId">Previous</a>
+                    </li>
+                    @for (int i = 1; i <= Model.Subscriptions.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == Model.Subscriptions.PageIndex ? "active" : "")">
+                            <a class="page-link" asp-action="Subscriptions" asp-route-page="@i" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-planId="@Model.PlanId">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(!Model.Subscriptions.HasNextPage ? "disabled" : "")">
+                        <a class="page-link" asp-action="Subscriptions" asp-route-page="@(Model.Subscriptions.PageIndex + 1)" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-planId="@Model.PlanId">Next</a>
+                    </li>
+                </ul>
+            </div>
+        }
+    </div>
+</div>

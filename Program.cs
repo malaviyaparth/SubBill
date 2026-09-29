@@ -27,6 +27,8 @@ builder.Services.AddTransient<IEmailSender, EmailSender>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<ICouponService, CouponService>();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -71,6 +73,64 @@ using (var scope = app.Services.CreateScope())
             await userManager.AddToRoleAsync(adminUser, "Admin");
         }
     };
+
+    var dbContext = services.GetRequiredService<ApplicationDbContext>();
+    await dbContext.Database.ExecuteSqlRawAsync(@"
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Coupons')
+        BEGIN
+            CREATE TABLE [Coupons] (
+                [Id] int NOT NULL IDENTITY,
+                [Code] nvarchar(50) NOT NULL,
+                [DiscountType] nvarchar(max) NOT NULL,
+                [DiscountValue] decimal(18,2) NOT NULL,
+                [MaxDiscount] decimal(18,2) NULL,
+                [MinimumAmount] decimal(18,2) NOT NULL,
+                [UsageLimit] int NULL,
+                [UsedCount] int NOT NULL,
+                [ValidFrom] datetime2 NOT NULL,
+                [ValidUntil] datetime2 NOT NULL,
+                [IsActive] bit NOT NULL,
+                [CreatedAt] datetime2 NOT NULL,
+                CONSTRAINT [PK_Coupons] PRIMARY KEY ([Id])
+            );
+            CREATE UNIQUE INDEX [IX_Coupons_Code] ON [Coupons] ([Code]);
+        END;
+
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'CouponUsages')
+        BEGIN
+            CREATE TABLE [CouponUsages] (
+                [Id] int NOT NULL IDENTITY,
+                [CouponId] int NOT NULL,
+                [UserId] nvarchar(450) NOT NULL,
+                [SubscriptionId] int NULL,
+                [DiscountAmount] decimal(18,2) NOT NULL,
+                [UsedAt] datetime2 NOT NULL,
+                CONSTRAINT [PK_CouponUsages] PRIMARY KEY ([Id]),
+                CONSTRAINT [FK_CouponUsages_Coupons_CouponId] FOREIGN KEY ([CouponId]) REFERENCES [Coupons] ([Id]) ON DELETE CASCADE,
+                CONSTRAINT [FK_CouponUsages_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE NO ACTION,
+                CONSTRAINT [FK_CouponUsages_UserSubscriptions_SubscriptionId] FOREIGN KEY ([SubscriptionId]) REFERENCES [UserSubscriptions] ([Id]) ON DELETE SET NULL
+            );
+            CREATE INDEX [IX_CouponUsages_CouponId] ON [CouponUsages] ([CouponId]);
+            CREATE INDEX [IX_CouponUsages_UserId] ON [CouponUsages] ([UserId]);
+        END;
+
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'AuditLogs')
+        BEGIN
+            CREATE TABLE [AuditLogs] (
+                [Id] int NOT NULL IDENTITY,
+                [AdminEmail] nvarchar(256) NOT NULL,
+                [Action] nvarchar(100) NOT NULL,
+                [EntityType] nvarchar(100) NOT NULL,
+                [EntityId] nvarchar(100) NULL,
+                [Details] nvarchar(1000) NULL,
+                [Timestamp] datetime2 NOT NULL,
+                [IpAddress] nvarchar(50) NULL,
+                CONSTRAINT [PK_AuditLogs] PRIMARY KEY ([Id])
+            );
+            CREATE INDEX [IX_AuditLogs_Timestamp] ON [AuditLogs] ([Timestamp]);
+            CREATE INDEX [IX_AuditLogs_Action] ON [AuditLogs] ([Action]);
+        END;
+    ");
 }
 
 // Configure the HTTP request pipeline.
