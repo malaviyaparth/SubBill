@@ -124,6 +124,51 @@
 
                             <hr class="my-2" />
 
+                            @if (Model.CurrentSubscription.Status == SubBill.Models.SubscriptionStatus.Trialing)
+                            {
+                                <div class="col-12">
+                                    <div class="card bg-info-subtle border border-info-subtle p-3 rounded-3 mb-2">
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                            <div>
+                                                <h6 class="fw-bold text-info-emphasis mb-1">
+                                                    <i class="bi bi-gift-fill me-1"></i>Free Trial In Progress
+                                                </h6>
+                                                <div class="small text-secondary">
+                                                    Remaining: <strong class="text-dark">@Model.CurrentSubscription.RemainingTrialDays Days</strong> &bull;
+                                                    Expires on: <strong>@(Model.CurrentSubscription.TrialEndDate?.ToString("dd MMM yyyy") ?? Model.CurrentSubscription.CurrentPeriodEnd.ToString("dd MMM yyyy"))</strong>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <a asp-controller="Payment" asp-action="Checkout" asp-route-planId="@Model.CurrentSubscription.PlanId" class="btn btn-sm btn-success fw-bold">
+                                                    <i class="bi bi-credit-card me-1"></i>Activate Paid Subscription
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Plan Features Entitlements -->
+                            @if (Model.CurrentSubscription.Plan?.Features != null && Model.CurrentSubscription.Plan.Features.Any())
+                            {
+                                <div class="col-12">
+                                    <div class="card bg-light border-0 p-3 rounded-3 mb-2">
+                                        <div class="fw-bold small text-uppercase text-secondary mb-2">
+                                            <i class="bi bi-check2-all text-success me-1"></i>Plan Features &amp; Limits
+                                        </div>
+                                        <div class="row g-2">
+                                            @foreach (var feat in Model.CurrentSubscription.Plan.Features)
+                                            {
+                                                <div class="col-sm-6 small">
+                                                    <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                                    <strong>@feat.FeatureName:</strong> <span class="text-secondary">@feat.FeatureValue</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
                             <!-- Current Period & Next Billing Date -->
                             <div class="col-sm-6">
                                 <label class="text-muted small text-uppercase fw-semibold">Current Billing Period</label>

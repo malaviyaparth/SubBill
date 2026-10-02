@@ -30,13 +30,22 @@ namespace SubBill.Controllers
         public async Task<IActionResult> Index()
         {
             var plans = await _context.SubscriptionPlans
+                .Include(p => p.Features)
                 .Where(p => p.IsActive)
+                .OrderBy(p => p.Price)
                 .ToListAsync();
 
             var userId = _userManager.GetUserId(User);
             if (!string.IsNullOrEmpty(userId))
             {
                 ViewBag.CurrentSubscription = await _subscriptionService.GetCurrentSubscriptionAsync(userId);
+
+                var trialEligibility = new Dictionary<int, bool>();
+                foreach (var plan in plans)
+                {
+                    trialEligibility[plan.Id] = await _subscriptionService.CanUserTakeTrialAsync(userId, plan.Id);
+                }
+                ViewBag.TrialEligibility = trialEligibility;
             }
 
             return View(plans);
@@ -46,9 +55,41 @@ namespace SubBill.Controllers
         [Authorize(Roles = "User")]
         public async Task<IActionResult> Subscribe(int id)
         {
-            var plan = await _context.SubscriptionPlans.FindAsync(id);
+            var plan = await _context.SubscriptionPlans
+                .Include(p => p.Features)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
             if (plan == null || !plan.IsActive) return NotFound();
+
+            var userId = _userManager.GetUserId(User);
+            if (!string.IsNullOrEmpty(userId))
+            {
+                ViewBag.CanTakeTrial = await _subscriptionService.CanUserTakeTrialAsync(userId, id);
+            }
+
             return View(plan);
+        }
+
+        // POST: /Subscription/StartTrial/5 (Phase 10 Free Trial)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "User")]
+        public async Task<IActionResult> StartTrial(int id)
+        {
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId)) return Challenge();
+
+            try
+            {
+                var trialSub = await _subscriptionService.StartFreeTrialAsync(userId, id);
+                TempData["Message"] = $"Your {trialSub.Plan?.Name} free trial is now active! Enjoy full access for {trialSub.Plan?.TrialDays} days.";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(MySubscription));
         }
 
         // POST: /Subscription/Subscribe/5
@@ -316,11 +357,57 @@ namespace SubBill.Controllers
             }
 
             var plans = await _context.SubscriptionPlans
+                .Include(p => p.Features)
                 .Where(p => p.IsActive)
+                .OrderBy(p => p.Price)
                 .ToListAsync();
 
             ViewBag.CurrentSubscription = currentSub;
             return View(plans);
+        }
+
+        // POST: /Subscription/Upgrade
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "User")]
+        public async Task<IActionResult> Upgrade(int newPlanId)
+        {
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId)) return Challenge();
+
+            try
+            {
+                var updated = await _subscriptionService.UpgradeSubscriptionAsync(userId, newPlanId);
+                TempData["Message"] = $"Your subscription has been successfully upgraded to {updated.Plan?.Name}!";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(MySubscription));
+        }
+
+        // POST: /Subscription/Downgrade
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "User")]
+        public async Task<IActionResult> Downgrade(int newPlanId)
+        {
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId)) return Challenge();
+
+            try
+            {
+                var updated = await _subscriptionService.DowngradeSubscriptionAsync(userId, newPlanId);
+                TempData["Message"] = $"Your subscription plan has been changed to {updated.Plan?.Name}.";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(MySubscription));
         }
 
         // POST: /Subscription/ConfirmChangePlan

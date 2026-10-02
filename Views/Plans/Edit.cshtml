@@ -1,45 +1,84 @@
-﻿@model SubBill.Models.SubscriptionPlan
-@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+@model SubBill.Models.SubscriptionPlan
 @{
-    ViewData["Title"] = "Edit Plan";
+    ViewData["Title"] = $"Edit {Model.Name} Plan";
 }
 
-<h1>Edit Plan</h1>
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit Subscription Plan</h5>
+                    <a asp-action="Features" asp-route-id="@Model.Id" class="btn btn-sm btn-light text-primary fw-semibold">
+                        <i class="bi bi-list-check me-1"></i>Manage Features (@(Model.Features?.Count ?? 0))
+                    </a>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Edit" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Id" />
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-<form asp-action="Edit" method="post">
-    <input type="hidden" asp-for="Id" />
-    <div asp-validation-summary="All" class="text-danger"></div>
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label fw-semibold">Plan Name <span class="text-danger">*</span></label>
+                            <input asp-for="Name" class="form-control" required maxlength="100" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
 
-    <div class="form-group mb-3">
-        <label asp-for="Name"></label>
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name" class="text-danger"></span>
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label fw-semibold">Description</label>
+                            <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+                            <span asp-validation-for="Description" class="text-danger small"></span>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="Price" class="form-label fw-semibold">Price (INR) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input asp-for="Price" class="form-control" type="number" step="0.01" min="0" required />
+                                </div>
+                                <span asp-validation-for="Price" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="BillingCycle" class="form-label fw-semibold">Billing Cycle <span class="text-danger">*</span></label>
+                                <select asp-for="BillingCycle" class="form-select"
+                                        asp-items="Html.GetEnumSelectList<SubBill.Models.BillingCycle>()"></select>
+                                <span asp-validation-for="BillingCycle" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <!-- Phase 10: Free Trial Days Configuration -->
+                        <div class="card bg-light border-0 p-3 mb-4 rounded-3">
+                            <label asp-for="TrialDays" class="form-label fw-semibold text-primary">
+                                <i class="bi bi-gift me-1"></i>Free Trial Days (Phase 10)
+                            </label>
+                            <input asp-for="TrialDays" class="form-control" type="number" min="0" max="365" placeholder="0 = No free trial" />
+                            <small class="text-muted">Enter the number of days users can trial this plan for free. 0 means no free trial.</small>
+                            <span asp-validation-for="TrialDays" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-check form-switch mb-4">
+                            <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" />
+                            <label asp-for="IsActive" class="form-check-label fw-semibold">Active &amp; Visible to Users</label>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                                <i class="bi bi-save me-1"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
+</div>
 
-    <div class="form-group mb-3">
-        <label asp-for="Description"></label>
-        <textarea asp-for="Description" class="form-control"></textarea>
-    </div>
-
-    <div class="form-group mb-3">
-        <label asp-for="Price"></label>
-        <input asp-for="Price" class="form-control" />
-        <span asp-validation-for="Price" class="text-danger"></span>
-    </div>
-
-    <div class="form-group mb-3">
-        <label asp-for="BillingCycle"></label>
-        <select asp-for="BillingCycle" class="form-control"
-                asp-items="Html.GetEnumSelectList<SubBill.Models.BillingCycle>()"></select>
-    </div>
-
-    <div class="form-check mb-3">
-        <input asp-for="IsActive" class="form-check-input" />
-        <label asp-for="IsActive" class="form-check-label"></label>
-    </div>
-
-    <button type="submit" class="btn btn-primary">Save</button>
-    <a asp-action="Index" class="btn btn-link">Cancel</a>
-</form>
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
