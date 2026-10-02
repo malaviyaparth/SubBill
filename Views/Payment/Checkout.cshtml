@@ -3,55 +3,88 @@
     ViewData["Title"] = "Payment Checkout";
     var plan = ViewBag.Plan as SubBill.Models.SubscriptionPlan;
     var razorpayKey = ViewBag.RazorpayKey as string;
+    var initialCoupon = ViewBag.CouponCode as string;
+    var originalPrice = plan?.Price ?? Model.Amount;
+    var initialDiscount = originalPrice - Model.Amount;
 }
 
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-7">
-            <div class="card shadow-sm border-0">
+            <div class="card shadow-sm border-0 rounded-3">
                 <div class="card-header bg-primary text-white py-3">
-                    <h5 class="mb-0">Secure Payment Checkout (Razorpay Test Sandbox)</h5>
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-shield-check me-2"></i>Secure Payment Checkout</h5>
                 </div>
                 <div class="card-body p-4">
+                    <!-- Order & Plan Summary -->
                     <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
                         <div>
-                            <h5 class="mb-1">@plan?.Name Subscription</h5>
-                            <span class="text-muted">Billing Cycle: @plan?.BillingCycle</span>
+                            <h5 class="mb-1 text-dark fw-bold">@plan?.Name Subscription</h5>
+                            <span class="text-muted small">Billing Cycle: <strong>@plan?.BillingCycle</strong></span>
                         </div>
                         <div class="text-end">
-                            <h4 class="text-primary mb-0">@Model.Currency @Model.Amount.ToString("F2")</h4>
+                            <div class="text-muted small">Base Price: ₹@originalPrice.ToString("F2")</div>
+                            <h4 id="displayFinalAmount" class="text-primary fw-bold mb-0">₹@Model.Amount.ToString("F2")</h4>
                             <small class="text-muted">Total Payable</small>
                         </div>
                     </div>
 
-                    <div class="alert alert-info py-2">
-                        <small>
-                            <strong>Sandbox Mode:</strong> Razorpay Gateway Integration. Key ID: <code>@razorpayKey</code> | Order ID: <code>@Model.OrderId</code>
-                        </small>
+                    <!-- Discount Preview Card (when coupon is active) -->
+                    <div id="discountPreviewContainer" class="p-3 mb-3 bg-success-subtle text-success-emphasis rounded-3 @(initialDiscount > 0 ? "" : "d-none")">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-tag-fill me-1"></i>
+                                <span class="fw-bold" id="appliedCouponCodeDisplay">@initialCoupon</span>
+                                <span class="small text-muted ms-2" id="couponMessageDisplay">Applied</span>
+                            </div>
+                            <div>
+                                <span class="badge bg-success fs-6" id="discountAmountDisplay">-₹@initialDiscount.ToString("F2")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- COUPON REDEMPTION SECTION (Phase 9) -->
+                    <div class="card bg-light border-0 rounded-3 p-3 mb-4">
+                        <label class="form-label fw-bold small text-dark mb-2">
+                            <i class="bi bi-ticket-perforated me-1 text-primary"></i>Have a Promotional Coupon?
+                        </label>
+                        <div class="input-group">
+                            <input type="text" id="couponInput" class="form-control" placeholder="Enter coupon code (e.g. SAVE20)" value="@initialCoupon" />
+                            <button type="button" id="applyCouponBtn" class="btn btn-outline-primary">
+                                <span id="couponSpinner" class="spinner-border spinner-border-sm me-1 d-none"></span>
+                                Apply Coupon
+                            </button>
+                        </div>
+                        <div id="couponValidationAlert" class="small mt-2 d-none"></div>
+                    </div>
+
+                    <div class="alert alert-info py-2 small mb-4">
+                        <strong>Test Sandbox Gateway:</strong> Razorpay Simulated Environment. Key: <code>@razorpayKey</code> | Order: <code>@Model.OrderId</code>
                     </div>
 
                     <!-- Payment Submission Form -->
                     <form id="paymentForm" asp-action="ProcessPayment" method="post">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="orderId" value="@Model.OrderId" />
+                        <input type="hidden" id="couponCodeHidden" name="couponCode" value="@initialCoupon" />
                         <input type="hidden" id="paymentId" name="paymentId" value="pay_test_@Guid.NewGuid().ToString("N")[..12]" />
                         <input type="hidden" id="signature" name="signature" value="test_signature_valid" />
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Payment Method</label>
-                            <div class="border rounded p-3 bg-light">
+                            <label class="form-label fw-bold small text-dark">Payment Method</label>
+                            <div class="border rounded-3 p-3 bg-white">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="paymentMethod" id="cardMethod" checked>
-                                    <label class="form-check-label" for="cardMethod">
-                                        Test Card / NetBanking / UPI (Simulated Gateway)
+                                    <label class="form-check-label fw-semibold" for="cardMethod">
+                                        <i class="bi bi-credit-card me-1"></i>Razorpay Simulated Gateway (Cards, NetBanking, UPI)
                                     </label>
                                 </div>
                             </div>
                         </div>
 
                         <div class="d-grid gap-2 mt-4">
-                            <button type="submit" class="btn btn-success btn-lg">
-                                Complete Payment (@Model.Currency @Model.Amount.ToString("F2"))
+                            <button type="submit" id="submitPaymentBtn" class="btn btn-success btn-lg fw-bold">
+                                Pay <span id="btnPayAmount">₹@Model.Amount.ToString("F2")</span> &amp; Activate
                             </button>
                             <a asp-controller="Subscription" asp-action="Index" class="btn btn-outline-secondary">
                                 Cancel
@@ -60,9 +93,85 @@
                     </form>
                 </div>
                 <div class="card-footer bg-light text-center py-3 text-muted small">
-                    <i class="bi bi-shield-lock"></i> 256-bit encrypted test transaction. Real money will NOT be charged.
+                    <i class="bi bi-shield-lock text-success me-1"></i>256-bit encrypted test transaction.
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const planId = @(plan?.Id ?? 0);
+            const originalPrice = @originalPrice;
+            const applyBtn = document.getElementById('applyCouponBtn');
+            const couponInput = document.getElementById('couponInput');
+            const alertBox = document.getElementById('couponValidationAlert');
+            const spinner = document.getElementById('couponSpinner');
+            const previewContainer = document.getElementById('discountPreviewContainer');
+            const appliedCodeDisplay = document.getElementById('appliedCouponCodeDisplay');
+            const discountDisplay = document.getElementById('discountAmountDisplay');
+            const messageDisplay = document.getElementById('couponMessageDisplay');
+            const finalDisplay = document.getElementById('displayFinalAmount');
+            const btnPayAmount = document.getElementById('btnPayAmount');
+            const couponHidden = document.getElementById('couponCodeHidden');
+
+            applyBtn.addEventListener('click', async function () {
+                const code = couponInput.value.trim();
+                if (!code) {
+                    showAlert('Please enter a coupon code.', 'text-danger');
+                    return;
+                }
+
+                applyBtn.disabled = true;
+                spinner.classList.remove('d-none');
+                alertBox.classList.add('d-none');
+
+                try {
+                    const formData = new FormData();
+                    formData.append('code', code);
+                    formData.append('amount', originalPrice);
+
+                    const response = await fetch('/Coupon/Validate', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.isValid) {
+                        showAlert(data.message, 'text-success fw-bold');
+                        previewContainer.classList.remove('d-none');
+                        appliedCodeDisplay.textContent = data.code;
+                        messageDisplay.textContent = 'Discount Applied';
+                        discountDisplay.textContent = '-₹' + Number(data.discount).toFixed(2);
+                        finalDisplay.textContent = '₹' + Number(data.finalAmount).toFixed(2);
+                        btnPayAmount.textContent = '₹' + Number(data.finalAmount).toFixed(2);
+                        couponHidden.value = data.code;
+
+                        // Reload checkout with this coupon to create or sync the order on backend
+                        window.location.href = `/Payment/Checkout?planId=${planId}&couponCode=${encodeURIComponent(data.code)}`;
+                    } else {
+                        showAlert(data.message, 'text-danger fw-semibold');
+                        previewContainer.classList.add('d-none');
+                        finalDisplay.textContent = '₹' + Number(originalPrice).toFixed(2);
+                        btnPayAmount.textContent = '₹' + Number(originalPrice).toFixed(2);
+                        couponHidden.value = '';
+                    }
+                } catch (err) {
+                    showAlert('Failed to validate coupon. Please try again.', 'text-danger');
+                } finally {
+                    applyBtn.disabled = false;
+                    spinner.classList.add('d-none');
+                }
+            });
+
+            function showAlert(text, textClass) {
+                alertBox.className = 'small mt-2 ' + textClass;
+                alertBox.textContent = text;
+                alertBox.classList.remove('d-none');
+            }
+        });
+    </script>
+}

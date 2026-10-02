@@ -25,9 +25,9 @@ namespace SubBill.Controllers
             _paymentService = paymentService;
         }
 
-        // GET: /Payment/Checkout?planId=2
+        // GET: /Payment/Checkout?planId=2&couponCode=SAVE20
         [Authorize(Roles = "User")]
-        public async Task<IActionResult> Checkout(int planId)
+        public async Task<IActionResult> Checkout(int planId, string? couponCode = null)
         {
             var userId = _userManager.GetUserId(User);
             if (string.IsNullOrEmpty(userId)) return Challenge();
@@ -35,10 +35,11 @@ namespace SubBill.Controllers
             var plan = await _context.SubscriptionPlans.FindAsync(planId);
             if (plan == null || !plan.IsActive) return NotFound();
 
-            var payment = await _paymentService.CreateOrderAsync(userId, planId);
+            var payment = await _paymentService.CreateOrderAsync(userId, planId, couponCode);
 
             ViewBag.Plan = plan;
             ViewBag.RazorpayKey = _paymentService.GetKeyId();
+            ViewBag.CouponCode = couponCode;
             return View(payment);
         }
 
@@ -46,12 +47,12 @@ namespace SubBill.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "User")]
-        public async Task<IActionResult> ProcessPayment(string orderId, string paymentId, string signature)
+        public async Task<IActionResult> ProcessPayment(string orderId, string paymentId, string signature, string? couponCode = null)
         {
             var userId = _userManager.GetUserId(User);
             if (string.IsNullOrEmpty(userId)) return Challenge();
 
-            var result = await _paymentService.VerifyAndProcessPaymentAsync(userId, orderId, paymentId, signature);
+            var result = await _paymentService.VerifyAndProcessPaymentAsync(userId, orderId, paymentId, signature, couponCode);
             if (result.Success)
             {
                 TempData["Message"] = result.Message;

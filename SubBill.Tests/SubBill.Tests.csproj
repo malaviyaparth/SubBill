@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.12" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.12" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Models\Coupon.cs" Link="Models\Coupon.cs" />
+    <Compile Include="..\Models\CouponUsage.cs" Link="Models\CouponUsage.cs" />
+    <Compile Include="..\Models\AuditLog.cs" Link="Models\AuditLog.cs" />
+    <Compile Include="..\Models\ApplicationUser.cs" Link="Models\ApplicationUser.cs" />
+    <Compile Include="..\Models\UserSubscription.cs" Link="Models\UserSubscription.cs" />
+    <Compile Include="..\Models\SubscriptionStatus.cs" Link="Models\SubscriptionStatus.cs" />
+    <Compile Include="..\Models\SubscriptionPlan.cs" Link="Models\SubscriptionPlan.cs" />
+    <Compile Include="..\Models\SubscriptionHistory.cs" Link="Models\SubscriptionHistory.cs" />
+    <Compile Include="..\Models\PlanChangeType.cs" Link="Models\PlanChangeType.cs" />
+    <Compile Include="..\Models\Payment.cs" Link="Models\Payment.cs" />
+    <Compile Include="..\Models\PaymentStatus.cs" Link="Models\PaymentStatus.cs" />
+    <Compile Include="..\Models\Invoice.cs" Link="Models\Invoice.cs" />
+    <Compile Include="..\Models\InvoiceStatus.cs" Link="Models\InvoiceStatus.cs" />
+    <Compile Include="..\Data\ApplicationDbContext.cs" Link="Data\ApplicationDbContext.cs" />
+    <Compile Include="..\Services\IAuditService.cs" Link="Services\IAuditService.cs" />
+    <Compile Include="..\Services\AuditService.cs" Link="Services\AuditService.cs" />
+    <Compile Include="..\Services\ICouponService.cs" Link="Services\ICouponService.cs" />
+    <Compile Include="..\Services\CouponService.cs" Link="Services\CouponService.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

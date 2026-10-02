@@ -11,6 +11,7 @@ namespace SubBill.Services
         private readonly ApplicationDbContext _context;
         private readonly ISubscriptionService _subscriptionService;
         private readonly IInvoiceService _invoiceService;
+        private readonly ICouponService _couponService;
         private readonly IConfiguration _configuration;
         private readonly ILogger<PaymentService> _logger;
 
@@ -18,12 +19,14 @@ namespace SubBill.Services
             ApplicationDbContext context,
             ISubscriptionService subscriptionService,
             IInvoiceService invoiceService,
+            ICouponService couponService,
             IConfiguration configuration,
             ILogger<PaymentService> logger)
         {
             _context = context;
             _subscriptionService = subscriptionService;
             _invoiceService = invoiceService;
+            _couponService = couponService;
             _configuration = configuration;
             _logger = logger;
         }
@@ -38,7 +41,7 @@ namespace SubBill.Services
             return _configuration["Razorpay:KeySecret"] ?? "subbill_test_secret_key_12345";
         }
 
-        public async Task<Payment> CreateOrderAsync(string userId, int planId)
+        public async Task<Payment> CreateOrderAsync(string userId, int planId, string? couponCode = null)
         {
             var plan = await _context.SubscriptionPlans.FindAsync(planId);
             if (plan == null || !plan.IsActive)
@@ -46,12 +49,24 @@ namespace SubBill.Services
                 throw new InvalidOperationException("Invalid or inactive plan.");
             }
 
+            decimal payableAmount = plan.Price;
+            if (!string.IsNullOrWhiteSpace(couponCode))
+            {
+                var validation = await _couponService.ValidateCouponAsync(couponCode, userId, plan.Price);
+                if (validation.IsValid)
+                {
+                    payableAmount = validation.FinalAmount;
+                    _logger.LogInformation("Applied coupon {Code} to Order. Original: {Orig}, Discount: {Disc}, Final: {Final}",
+                        couponCode, plan.Price, validation.DiscountAmount, payableAmount);
+                }
+            }
+
             var orderId = $"order_test_{DateTime.UtcNow:yyyyMMddHHmmss}_{Random.Shared.Next(1000, 9999)}";
 
             var payment = new Payment
             {
                 UserId = userId,
-                Amount = plan.Price,
+                Amount = payableAmount,
                 Currency = "INR",
                 PaymentGateway = "Razorpay (Test Sandbox)",
                 OrderId = orderId,
@@ -62,11 +77,11 @@ namespace SubBill.Services
             _context.Payments.Add(payment);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Created test payment order {OrderId} for User {UserId}, Amount {Amount}", orderId, userId, plan.Price);
+            _logger.LogInformation("Created test payment order {OrderId} for User {UserId}, Amount {Amount}", orderId, userId, payableAmount);
             return payment;
         }
 
-        public async Task<PaymentResult> VerifyAndProcessPaymentAsync(string userId, string orderId, string paymentId, string signature)
+        public async Task<PaymentResult> VerifyAndProcessPaymentAsync(string userId, string orderId, string paymentId, string signature, string? couponCode = null)
         {
             var payment = await _context.Payments
                 .FirstOrDefaultAsync(p => p.OrderId == orderId && p.UserId == userId);
@@ -124,6 +139,19 @@ namespace SubBill.Services
             var subscription = await _subscriptionService.SubscribeAsync(userId, plan.Id);
             payment.SubscriptionId = subscription.Id;
             await _context.SaveChangesAsync();
+
+            // Record coupon usage if a coupon was applied
+            if (!string.IsNullOrWhiteSpace(couponCode))
+            {
+                try
+                {
+                    await _couponService.ApplyCouponAsync(couponCode, userId, subscription.Id, plan.Price);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to record coupon usage for coupon {CouponCode}", couponCode);
+                }
+            }
 
             // Automatically generate Invoice for successful payment (Phase 5 requirement)
             try

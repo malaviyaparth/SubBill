@@ -1,0 +1,410 @@
+@model SubBill.Models.AdminCouponsViewModel
+@{
+    ViewData["Title"] = "Coupon Management";
+}
+
+<div class="container-fluid py-4 px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-dark">
+                <i class="bi bi-ticket-perforated text-primary me-2"></i>Coupon &amp; Discount Management
+            </h1>
+            <p class="text-muted small mb-0">Create promotional coupons, set percentage/fixed discounts, manage usage limits, and monitor redemptions.</p>
+        </div>
+        <div class="mt-2 mt-sm-0">
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createCouponModal">
+                <i class="bi bi-plus-circle me-1"></i>Create New Coupon
+            </button>
+        </div>
+    </div>
+
+    <!-- Alert Messages -->
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>@TempData["Message"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Tabs: Coupons List & Usage History -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-header bg-white border-bottom pt-3 pb-0 px-4">
+            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link @(Model.SelectedCouponId.HasValue ? "" : "active") fw-semibold" data-bs-toggle="tab" data-bs-target="#couponsTab" type="button">
+                        <i class="bi bi-tags me-1"></i>Coupons (@Model.Coupons.TotalCount)
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(Model.SelectedCouponId.HasValue ? "active" : "") fw-semibold" data-bs-toggle="tab" data-bs-target="#usagesTab" type="button">
+                        <i class="bi bi-clock-history me-1"></i>Redemption Usages (@Model.Usages.TotalCount)
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="tab-content">
+                <!-- Coupons List Tab -->
+                <div class="tab-pane fade @(Model.SelectedCouponId.HasValue ? "" : "show active") p-4" id="couponsTab">
+                    @if (!Model.Coupons.Items.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-ticket-perforated fs-1"></i>
+                            <h5 class="fw-bold mt-2">No Coupons Created Yet</h5>
+                            <p class="small">Click 'Create New Coupon' to configure your first discount code.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Discount</th>
+                                        <th>Min Order</th>
+                                        <th>Usage</th>
+                                        <th>Validity</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var c in Model.Coupons.Items)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <code class="fs-6 fw-bold text-primary bg-light px-2 py-1 rounded">@c.Code</code>
+                                            </td>
+                                            <td>
+                                                @if (c.DiscountType == SubBill.Models.DiscountType.Percentage)
+                                                {
+                                                    <span class="fw-bold">@c.DiscountValue% OFF</span>
+                                                    @if (c.MaxDiscount.HasValue)
+                                                    {
+                                                        <small class="text-muted d-block">Max: ₹@c.MaxDiscount.Value.ToString("F2")</small>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <span class="fw-bold">₹@c.DiscountValue.ToString("F2") FLAT</span>
+                                                }
+                                            </td>
+                                            <td>₹@c.MinimumAmount.ToString("F2")</td>
+                                            <td>
+                                                <span class="fw-semibold">@c.UsedCount</span>
+                                                <span class="text-muted">/ @(c.UsageLimit.HasValue ? c.UsageLimit.Value.ToString() : "∞")</span>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted d-block">From: @c.ValidFrom.ToString("dd MMM yyyy")</small>
+                                                <small class="text-muted d-block">Until: @c.ValidUntil.ToString("dd MMM yyyy")</small>
+                                            </td>
+                                            <td>
+                                                @if (c.IsActive)
+                                                {
+                                                    <span class="badge bg-success">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                <div class="btn-group btn-group-sm">
+                                                    <!-- Toggle Status Form -->
+                                                    <form asp-action="ToggleCoupon" method="post" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="id" value="@c.Id" />
+                                                        <button type="submit" class="btn btn-outline-secondary btn-sm" title="@(c.IsActive ? "Deactivate" : "Activate")">
+                                                            <i class="bi @(c.IsActive ? "bi-toggle-on text-success" : "bi-toggle-off text-muted")"></i>
+                                                        </button>
+                                                    </form>
+
+                                                    <!-- Edit Button -->
+                                                    <button type="button" class="btn btn-outline-primary btn-sm edit-coupon-btn"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#editCouponModal"
+                                                            data-id="@c.Id"
+                                                            data-code="@c.Code"
+                                                            data-type="@c.DiscountType"
+                                                            data-value="@c.DiscountValue"
+                                                            data-max="@(c.MaxDiscount?.ToString() ?? "")"
+                                                            data-min="@c.MinimumAmount"
+                                                            data-limit="@(c.UsageLimit?.ToString() ?? "")"
+                                                            data-from="@c.ValidFrom.ToString("yyyy-MM-ddTHH:mm")"
+                                                            data-until="@c.ValidUntil.ToString("yyyy-MM-ddTHH:mm")"
+                                                            data-active="@c.IsActive.ToString().ToLower()">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+
+                                                    <!-- View Usages -->
+                                                    <a asp-action="Coupons" asp-route-couponId="@c.Id" class="btn btn-outline-info btn-sm" title="View Redemptions">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+
+                                                    <!-- Delete Button -->
+                                                    <form asp-action="DeleteCoupon" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to permanently delete this coupon?');">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="id" value="@c.Id" />
+                                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        @if (Model.Coupons.TotalPages > 1)
+                        {
+                            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                                <span class="small text-muted">Page @Model.Coupons.PageIndex of @Model.Coupons.TotalPages</span>
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item @(!Model.Coupons.HasPreviousPage ? "disabled" : "")">
+                                        <a class="page-link" asp-action="Coupons" asp-route-page="@(Model.Coupons.PageIndex - 1)">Previous</a>
+                                    </li>
+                                    @for (int i = 1; i <= Model.Coupons.TotalPages; i++)
+                                    {
+                                        <li class="page-item @(i == Model.Coupons.PageIndex ? "active" : "")">
+                                            <a class="page-link" asp-action="Coupons" asp-route-page="@i">@i</a>
+                                        </li>
+                                    }
+                                    <li class="page-item @(!Model.Coupons.HasNextPage ? "disabled" : "")">
+                                        <a class="page-link" asp-action="Coupons" asp-route-page="@(Model.Coupons.PageIndex + 1)">Next</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        }
+                    }
+                </div>
+
+                <!-- Usage History Tab -->
+                <div class="tab-pane fade @(Model.SelectedCouponId.HasValue ? "show active" : "") p-4" id="usagesTab">
+                    @if (Model.SelectedCouponId.HasValue)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="badge bg-primary fs-6">Filtered for Coupon ID: #@Model.SelectedCouponId.Value</span>
+                            <a asp-action="Coupons" class="btn btn-sm btn-outline-secondary">Show All Usages</a>
+                        </div>
+                    }
+
+                    @if (!Model.Usages.Items.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-clock-history fs-1"></i>
+                            <p class="mt-2 mb-0">No redemption history recorded yet.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Coupon</th>
+                                        <th>User</th>
+                                        <th>Plan</th>
+                                        <th>Discount Applied</th>
+                                        <th>Redeemed Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var u in Model.Usages.Items)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <code class="fw-bold text-primary">@u.Coupon?.Code</code>
+                                            </td>
+                                            <td>
+                                                <div class="fw-semibold">@(u.User?.FullName ?? u.User?.UserName ?? "User")</div>
+                                                <small class="text-muted">@u.User?.Email</small>
+                                            </td>
+                                            <td>@(u.Subscription?.Plan?.Name ?? "Plan")</td>
+                                            <td><strong class="text-success">-₹@u.DiscountAmount.ToString("F2")</strong></td>
+                                            <td>@u.UsedAt.ToString("dd MMM yyyy HH:mm") UTC</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Create Coupon -->
+<div class="modal fade" id="createCouponModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="CreateCoupon" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header border-bottom py-3">
+                    <h5 class="modal-title fw-bold">Create Promotional Coupon</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Coupon Code</label>
+                        <input type="text" name="Code" class="form-control text-uppercase" placeholder="e.g. SUMMER50" required />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold">Discount Type</label>
+                            <select name="DiscountType" class="form-select">
+                                <option value="Percentage">Percentage (%)</option>
+                                <option value="FixedAmount">Fixed Amount (₹)</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold">Discount Value</label>
+                            <input type="number" step="0.01" name="DiscountValue" class="form-control" placeholder="e.g. 20" required />
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold">Max Discount (Optional for %)</label>
+                            <input type="number" step="0.01" name="MaxDiscount" class="form-control" placeholder="e.g. 100" />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold">Min Order Amount</label>
+                            <input type="number" step="0.01" name="MinimumAmount" class="form-control" value="0" required />
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold">Usage Limit (Total)</label>
+                            <input type="number" name="UsageLimit" class="form-control" placeholder="Optional" />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold">Status</label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" name="IsActive" value="true" checked id="createIsActive">
+                                <label class="form-check-label" for="createIsActive">Active immediately</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold">Valid From</label>
+                            <input type="datetime-local" name="ValidFrom" class="form-control" value="@DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm")" required />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold">Valid Until</label>
+                            <input type="datetime-local" name="ValidUntil" class="form-control" value="@DateTime.UtcNow.AddMonths(1).ToString("yyyy-MM-ddTHH:mm")" required />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top py-2">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Coupon</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Edit Coupon -->
+<div class="modal fade" id="editCouponModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="EditCoupon" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="editId" name="Id" />
+                <div class="modal-header border-bottom py-3">
+                    <h5 class="modal-title fw-bold">Edit Coupon <span id="editCodeHeader" class="text-primary"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold">Discount Type</label>
+                            <select id="editDiscountType" name="DiscountType" class="form-select">
+                                <option value="Percentage">Percentage</option>
+                                <option value="FixedAmount">FixedAmount</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold">Discount Value</label>
+                            <input type="number" step="0.01" id="editDiscountValue" name="DiscountValue" class="form-control" required />
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold">Max Discount</label>
+                            <input type="number" step="0.01" id="editMaxDiscount" name="MaxDiscount" class="form-control" />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold">Min Order Amount</label>
+                            <input type="number" step="0.01" id="editMinAmount" name="MinimumAmount" class="form-control" required />
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold">Usage Limit</label>
+                            <input type="number" id="editUsageLimit" name="UsageLimit" class="form-control" />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold">Status</label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="editIsActive" name="IsActive" value="true">
+                                <label class="form-check-label" for="editIsActive">Active</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold">Valid From</label>
+                            <input type="datetime-local" id="editValidFrom" name="ValidFrom" class="form-control" required />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold">Valid Until</label>
+                            <input type="datetime-local" id="editValidUntil" name="ValidUntil" class="form-control" required />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top py-2">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const editButtons = document.querySelectorAll('.edit-coupon-btn');
+            editButtons.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    document.getElementById('editId').value = this.getAttribute('data-id');
+                    document.getElementById('editCodeHeader').textContent = '(' + this.getAttribute('data-code') + ')';
+                    document.getElementById('editDiscountType').value = this.getAttribute('data-type');
+                    document.getElementById('editDiscountValue').value = this.getAttribute('data-value');
+                    document.getElementById('editMaxDiscount').value = this.getAttribute('data-max');
+                    document.getElementById('editMinAmount').value = this.getAttribute('data-min');
+                    document.getElementById('editUsageLimit').value = this.getAttribute('data-limit');
+                    document.getElementById('editValidFrom').value = this.getAttribute('data-from');
+                    document.getElementById('editValidUntil').value = this.getAttribute('data-until');
+                    document.getElementById('editIsActive').checked = this.getAttribute('data-active') === 'true';
+                });
+            });
+        });
+    </script>
+}

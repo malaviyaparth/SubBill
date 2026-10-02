@@ -141,6 +141,57 @@ namespace SubBill.Services
             return sub;
         }
 
+        public async Task<UserSubscription> RenewUserSubscriptionAsync(string userId, int subscriptionId)
+        {
+            var sub = await _context.UserSubscriptions
+                .Include(s => s.Plan)
+                .FirstOrDefaultAsync(s => s.Id == subscriptionId && s.UserId == userId);
+
+            if (sub == null)
+            {
+                throw new KeyNotFoundException("Subscription not found.");
+            }
+
+            var baseDate = sub.CurrentPeriodEnd > DateTime.UtcNow ? sub.CurrentPeriodEnd : DateTime.UtcNow;
+            sub.CurrentPeriodStart = baseDate;
+            sub.CurrentPeriodEnd = CalculatePeriodEnd(baseDate, sub.Plan?.BillingCycle ?? BillingCycle.Monthly);
+            sub.Status = SubscriptionStatus.Active;
+            sub.AutoRenew = true;
+            sub.CancelledAt = null;
+            sub.CancellationReason = null;
+            sub.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return sub;
+        }
+
+        public async Task<UserSubscription> ToggleAutoRenewAsync(string userId, int subscriptionId, bool enable)
+        {
+            var sub = await _context.UserSubscriptions
+                .Include(s => s.Plan)
+                .FirstOrDefaultAsync(s => s.Id == subscriptionId && s.UserId == userId);
+
+            if (sub == null)
+            {
+                throw new KeyNotFoundException("Subscription not found.");
+            }
+
+            sub.AutoRenew = enable;
+            if (enable && sub.CancelledAt != null)
+            {
+                sub.CancelledAt = null;
+                sub.CancellationReason = null;
+                if (sub.Status == SubscriptionStatus.Cancelled && DateTime.UtcNow <= sub.CurrentPeriodEnd)
+                {
+                    sub.Status = SubscriptionStatus.Active;
+                }
+            }
+            sub.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return sub;
+        }
+
         public async Task<UserSubscription> ExpireSubscriptionAsync(int subscriptionId)
         {
             var sub = await _context.UserSubscriptions.FindAsync(subscriptionId);

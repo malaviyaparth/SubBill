@@ -1,0 +1,257 @@
+@model SubBill.Models.PaginatedList<SubBill.Models.AdminUserListItemViewModel>
+@{
+    ViewData["Title"] = "User Management";
+    var search = ViewBag.Search as string;
+    var status = ViewBag.Status as string;
+}
+
+<div class="container-fluid py-4 px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-dark">
+                <i class="bi bi-people text-primary me-2"></i>User Management
+            </h1>
+            <p class="text-muted small mb-0">View registered users, manage account statuses, subscriptions, payments, and invoices.</p>
+        </div>
+        <div class="mt-2 mt-sm-0">
+            <span class="badge bg-light text-dark border px-3 py-2">
+                Total Users: <strong>@Model.TotalCount</strong>
+            </span>
+        </div>
+    </div>
+
+    <!-- Alert Messages -->
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>@TempData["Message"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Search & Filter Bar -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 p-3 bg-light">
+        <form method="get" asp-action="Users" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control bg-white" placeholder="Search by name or email..." value="@search" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select form-select-sm bg-white">
+                    <option value="">All Account Statuses</option>
+                    <option value="active" selected="@(status == "active")">Active Only</option>
+                    <option value="disabled" selected="@(status == "disabled")">Disabled Only</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+                <a asp-action="Users" class="btn btn-sm btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card border-0 shadow-sm rounded-3">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Account Status</th>
+                        <th>Current Plan</th>
+                        <th>Subscription Status</th>
+                        <th>Registration Date</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Items.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-people fs-1"></i>
+                                <p class="mt-2 mb-0">No users match your criteria.</p>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var user in Model.Items)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-bold text-dark">@(string.IsNullOrWhiteSpace(user.Name) ? "No Name" : user.Name)</div>
+                                    <small class="text-muted">@user.Email</small>
+                                </td>
+                                <td>
+                                    <span class="badge @(user.Role == "Admin" ? "bg-dark" : "bg-light text-dark border")">
+                                        @user.Role
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (user.IsDisabled)
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border border-danger">
+                                            <i class="bi bi-lock me-1"></i>Disabled
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success">
+                                            <i class="bi bi-check-circle me-1"></i>Active
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    <strong>@(user.CurrentPlan ?? "None")</strong>
+                                </td>
+                                <td>
+                                    @if (user.SubscriptionStatus == SubBill.Models.SubscriptionStatus.Active)
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else if (user.SubscriptionStatus == SubBill.Models.SubscriptionStatus.Trialing)
+                                    {
+                                        <span class="badge bg-info">Trial</span>
+                                    }
+                                    else if (user.SubscriptionStatus == SubBill.Models.SubscriptionStatus.Cancelled)
+                                    {
+                                        <span class="badge bg-warning text-dark">Cancelled</span>
+                                    }
+                                    else if (user.SubscriptionStatus == SubBill.Models.SubscriptionStatus.Expired)
+                                    {
+                                        <span class="badge bg-secondary">Expired</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">&mdash;</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="small text-muted">@user.RegistrationDate.ToString("dd MMM yyyy")</span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a asp-action="UserDetails" asp-route-id="@user.Id" class="btn btn-outline-primary" title="View User Details">
+                                            <i class="bi bi-eye"></i> View
+                                        </a>
+                                        <button type="button" class="btn @(user.IsDisabled ? "btn-outline-success" : "btn-outline-danger")"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#toggleStatusModal"
+                                                data-user-id="@user.Id"
+                                                data-user-email="@user.Email"
+                                                data-is-disabled="@user.IsDisabled.ToString().ToLower()">
+                                            <i class="bi @(user.IsDisabled ? "bi-unlock" : "bi-lock")"></i>
+                                            @(user.IsDisabled ? "Enable" : "Disable")
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="card-footer bg-white border-top py-3 d-flex justify-content-between align-items-center">
+                <span class="small text-muted">Showing page @Model.PageIndex of @Model.TotalPages (Total: @Model.TotalCount users)</span>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                        <a class="page-link" asp-action="Users" asp-route-page="@(Model.PageIndex - 1)" asp-route-search="@search" asp-route-status="@status">Previous</a>
+                    </li>
+                    @for (int i = 1; i <= Model.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == Model.PageIndex ? "active" : "")">
+                            <a class="page-link" asp-action="Users" asp-route-page="@i" asp-route-search="@search" asp-route-status="@status">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                        <a class="page-link" asp-action="Users" asp-route-page="@(Model.PageIndex + 1)" asp-route-search="@search" asp-route-status="@status">Next</a>
+                    </li>
+                </ul>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modal: Disable / Enable User -->
+<div class="modal fade" id="toggleStatusModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="ToggleUserStatus" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="modalUserId" name="id" value="" />
+                <input type="hidden" id="modalDisableFlag" name="disable" value="true" />
+
+                <div class="modal-header border-bottom py-3">
+                    <h5 class="modal-title fw-bold" id="modalTitle">Account Status Confirmation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p id="modalBodyText" class="text-dark mb-3"></p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Audit Reason:</label>
+                        <input type="text" name="reason" class="form-control" placeholder="Required for compliance/audit logging" required />
+                    </div>
+                </div>
+                <div class="modal-footer border-top py-2">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" id="modalSubmitBtn" class="btn btn-danger">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const toggleModal = document.getElementById('toggleStatusModal');
+            if (toggleModal) {
+                toggleModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const userId = button.getAttribute('data-user-id');
+                    const email = button.getAttribute('data-user-email');
+                    const isDisabled = button.getAttribute('data-is-disabled') === 'true';
+
+                    const modalUserId = document.getElementById('modalUserId');
+                    const modalDisableFlag = document.getElementById('modalDisableFlag');
+                    const modalTitle = document.getElementById('modalTitle');
+                    const modalBodyText = document.getElementById('modalBodyText');
+                    const modalSubmitBtn = document.getElementById('modalSubmitBtn');
+
+                    modalUserId.value = userId;
+
+                    if (isDisabled) {
+                        modalDisableFlag.value = "false";
+                        modalTitle.textContent = "Enable User Account";
+                        modalBodyText.textContent = `Are you sure you want to enable account access for '${email}'?`;
+                        modalSubmitBtn.textContent = "Enable Account";
+                        modalSubmitBtn.className = "btn btn-success";
+                    } else {
+                        modalDisableFlag.value = "true";
+                        modalTitle.textContent = "Disable User Account";
+                        modalBodyText.textContent = `Are you sure you want to disable and lock out '${email}'? They will be unable to log in until re-enabled.`;
+                        modalSubmitBtn.textContent = "Disable Account";
+                        modalSubmitBtn.className = "btn btn-danger";
+                    }
+                });
+            }
+        });
+    </script>
+}

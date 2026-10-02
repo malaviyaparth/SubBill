@@ -1,0 +1,515 @@
+@model SubBill.Models.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Admin Billing & Subscription Dashboard";
+}
+
+<div class="container-fluid py-4 px-lg-4">
+    <!-- Header with Date Range Filter -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-dark">
+                <i class="bi bi-speedometer2 text-primary me-2"></i>Admin Subscription &amp; Billing Dashboard
+            </h1>
+            <p class="text-muted small mb-0">
+                Real-time subscription metrics, revenue analytics, and billing health generated via server-side SQL aggregations.
+            </p>
+        </div>
+
+        <!-- Date Range Filter Selector -->
+        <div class="mt-3 mt-md-0 d-flex align-items-center gap-2">
+            <span class="text-muted small fw-semibold d-none d-sm-inline">
+                <i class="bi bi-funnel me-1"></i>Date Filter:
+            </span>
+            <div class="btn-group btn-group-sm" role="group" aria-label="Date Range Filters">
+                <a asp-action="Index" asp-route-range="7days" class="btn @(Model.TimeRange == "7days" ? "btn-primary" : "btn-outline-primary")">Last 7 Days</a>
+                <a asp-action="Index" asp-route-range="30days" class="btn @(Model.TimeRange == "30days" ? "btn-primary" : "btn-outline-primary")">Last 30 Days</a>
+                <a asp-action="Index" asp-route-range="3months" class="btn @(Model.TimeRange == "3months" ? "btn-primary" : "btn-outline-primary")">Last 3 Months</a>
+                <a asp-action="Index" asp-route-range="6months" class="btn @(Model.TimeRange == "6months" ? "btn-primary" : "btn-outline-primary")">Last 6 Months</a>
+                <a asp-action="Index" asp-route-range="12months" class="btn @(Model.TimeRange == "12months" ? "btn-primary" : "btn-outline-primary")">Last 12 Months</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Filter Badge Info -->
+    <div class="alert alert-light border d-flex justify-content-between align-items-center py-2 px-3 mb-4 rounded-3 small text-muted">
+        <div>
+            <i class="bi bi-info-circle me-1 text-primary"></i>
+            Showing analytics from <strong>@Model.StartDate.ToString("dd MMM yyyy")</strong> to <strong>@Model.EndDate.ToString("dd MMM yyyy")</strong>.
+        </div>
+        <div class="d-none d-md-block">
+            <span>Range: <span class="badge bg-primary text-white">@Model.TimeRange.ToUpper()</span></span>
+        </div>
+    </div>
+
+    <!-- 8 DASHBOARD KPI CARDS -->
+    <div class="row g-3 mb-4">
+        <!-- 1. Total Users -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-primary-subtle text-primary p-3 me-3">
+                        <i class="bi bi-people-fill fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Total Users</div>
+                        <h3 class="fw-bold mb-0 text-dark">@Model.TotalUsers</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Active Subscriptions -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-success-subtle text-success p-3 me-3">
+                        <i class="bi bi-check2-circle fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Active Subscriptions</div>
+                        <h3 class="fw-bold mb-0 text-success">@Model.ActiveSubscriptions</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Trialing Subscriptions -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-info-subtle text-info p-3 me-3">
+                        <i class="bi bi-hourglass-split fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Trialing Subscriptions</div>
+                        <h3 class="fw-bold mb-0 text-info">@Model.TrialingSubscriptions</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Cancelled Subscriptions -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-warning-subtle text-warning-emphasis p-3 me-3">
+                        <i class="bi bi-slash-circle fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Cancelled Subscriptions</div>
+                        <h3 class="fw-bold mb-0 text-warning-emphasis">@Model.CancelledSubscriptions</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Expired Subscriptions -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-secondary-subtle text-secondary p-3 me-3">
+                        <i class="bi bi-calendar-x fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Expired Subscriptions</div>
+                        <h3 class="fw-bold mb-0 text-secondary">@Model.ExpiredSubscriptions</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Total Revenue -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-primary-subtle text-primary p-3 me-3">
+                        <i class="bi bi-currency-rupee fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Total Revenue</div>
+                        <h3 class="fw-bold mb-0 text-dark">₹@Model.TotalRevenue.ToString("N2")</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. Current Month Revenue -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-success-subtle text-success p-3 me-3">
+                        <i class="bi bi-graph-up-arrow fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Current Month Revenue</div>
+                        <h3 class="fw-bold mb-0 text-success">₹@Model.CurrentMonthRevenue.ToString("N2")</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. Failed Payments -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-danger-subtle text-danger p-3 me-3">
+                        <i class="bi bi-exclamation-octagon-fill fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Failed Payments (@Model.TimeRange)</div>
+                        <h3 class="fw-bold mb-0 text-danger">@Model.FailedPayments</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5 CHARTS SECTION -->
+    <div class="row g-4 mb-4">
+        <!-- Chart 1: Revenue by month -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-dark">
+                        <i class="bi bi-cash-stack text-success me-2"></i>Revenue by Month
+                    </span>
+                    <span class="badge bg-light text-muted border">₹ INR</span>
+                </div>
+                <div class="card-body p-4">
+                    @if (!Model.RevenueMonthData.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-bar-chart fs-1"></i>
+                            <p class="mt-2 mb-0 small">No successful revenue transactions recorded for the selected period.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="position: relative; height: 320px;">
+                            <canvas id="revenueByMonthChart"></canvas>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 4: Plan distribution -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <span class="fw-bold text-dark">
+                        <i class="bi bi-pie-chart-fill text-primary me-2"></i>Plan Distribution
+                    </span>
+                </div>
+                <div class="card-body p-4 d-flex flex-column justify-content-center">
+                    @if (!Model.PlanDistributionData.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-pie-chart fs-1"></i>
+                            <p class="mt-2 mb-0 small">No active plan subscriptions yet.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="position: relative; height: 280px;">
+                            <canvas id="planDistributionChart"></canvas>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 2: Subscription growth -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-dark">
+                        <i class="bi bi-graph-up text-primary me-2"></i>Subscription Growth
+                    </span>
+                    <span class="badge bg-light text-muted border">New Signups</span>
+                </div>
+                <div class="card-body p-4">
+                    @if (!Model.GrowthData.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-graph-up fs-1"></i>
+                            <p class="mt-2 mb-0 small">No new subscriptions started in the selected date range.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="position: relative; height: 280px;">
+                            <canvas id="subscriptionGrowthChart"></canvas>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 3: Active vs cancelled subscriptions -->
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <span class="fw-bold text-dark">
+                        <i class="bi bi-toggles text-warning me-2"></i>Active vs Cancelled
+                    </span>
+                </div>
+                <div class="card-body p-4 d-flex flex-column justify-content-center">
+                    @if (!Model.SubscriptionStatusData.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-pie-chart fs-1"></i>
+                            <p class="mt-2 mb-0 small">No subscription records found.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="position: relative; height: 260px;">
+                            <canvas id="activeVsCancelledChart"></canvas>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 5: Payment success vs failure -->
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <span class="fw-bold text-dark">
+                        <i class="bi bi-credit-card-2-front text-info me-2"></i>Payment Success vs Failure
+                    </span>
+                </div>
+                <div class="card-body p-4 d-flex flex-column justify-content-center">
+                    @if (!Model.PaymentStatusData.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-credit-card fs-1"></i>
+                            <p class="mt-2 mb-0 small">No payment transactions in this range.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="position: relative; height: 260px;">
+                            <canvas id="paymentStatusChart"></canvas>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Navigation to Admin Modules -->
+    <div class="card border-0 shadow-sm rounded-3 p-4 bg-white">
+        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-grid-3x3-gap text-secondary me-2"></i>Admin Management Shortcuts</h5>
+        <div class="row g-3">
+            <div class="col-sm-6 col-md-3">
+                <a asp-controller="Plans" asp-action="Index" class="btn btn-outline-secondary w-100 text-start p-3 rounded-3">
+                    <div class="fw-bold text-dark"><i class="bi bi-box-seam me-2 text-primary"></i>Manage Plans</div>
+                    <small class="text-muted">Create, edit, and toggle pricing plans</small>
+                </a>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <a asp-controller="Subscription" asp-action="AdminHistory" class="btn btn-outline-secondary w-100 text-start p-3 rounded-3">
+                    <div class="fw-bold text-dark"><i class="bi bi-arrow-repeat me-2 text-warning"></i>Plan Transitions</div>
+                    <small class="text-muted">Audit upgrades &amp; downgrades history</small>
+                </a>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <a asp-controller="Invoice" asp-action="AdminIndex" class="btn btn-outline-secondary w-100 text-start p-3 rounded-3">
+                    <div class="fw-bold text-dark"><i class="bi bi-receipt me-2 text-success"></i>All Invoices</div>
+                    <small class="text-muted">Search, filter, and audit tax invoices</small>
+                </a>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <a asp-controller="Payment" asp-action="AdminPayments" class="btn btn-outline-secondary w-100 text-start p-3 rounded-3">
+                    <div class="fw-bold text-dark"><i class="bi bi-credit-card me-2 text-info"></i>All Payments</div>
+                    <small class="text-muted">View all Razorpay payment records</small>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Palette colors
+            const primaryColor = '#0d6efd';
+            const successColor = '#198754';
+            const warningColor = '#ffc107';
+            const dangerColor = '#dc3545';
+            const infoColor = '#0dcaf0';
+            const secondaryColor = '#6c757d';
+
+            // Chart 1: Revenue by month
+            @if (Model.RevenueMonthData.Any())
+            {
+                <text>
+                const revCtx = document.getElementById('revenueByMonthChart')?.getContext('2d');
+                if (revCtx) {
+                    new Chart(revCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RevenueMonthLabels)),
+                            datasets: [{
+                                label: 'Revenue (₹)',
+                                data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RevenueMonthData)),
+                                backgroundColor: 'rgba(13, 110, 253, 0.75)',
+                                borderColor: primaryColor,
+                                borderWidth: 1,
+                                borderRadius: 6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return ' ₹' + Number(context.raw).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return '₹' + value;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                </text>
+            }
+
+            // Chart 2: Subscription growth
+            @if (Model.GrowthData.Any())
+            {
+                <text>
+                const growthCtx = document.getElementById('subscriptionGrowthChart')?.getContext('2d');
+                if (growthCtx) {
+                    new Chart(growthCtx, {
+                        type: 'line',
+                        data: {
+                            labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.GrowthLabels)),
+                            datasets: [{
+                                label: 'New Subscriptions',
+                                data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.GrowthData)),
+                                fill: true,
+                                backgroundColor: 'rgba(25, 135, 84, 0.15)',
+                                borderColor: successColor,
+                                tension: 0.3,
+                                pointRadius: 4,
+                                pointBackgroundColor: successColor
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { precision: 0 }
+                                }
+                            }
+                        }
+                    });
+                }
+                </text>
+            }
+
+            // Chart 3: Active vs cancelled subscriptions
+            @if (Model.SubscriptionStatusData.Any())
+            {
+                <text>
+                const statusCtx = document.getElementById('activeVsCancelledChart')?.getContext('2d');
+                if (statusCtx) {
+                    new Chart(statusCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SubscriptionStatusLabels)),
+                            datasets: [{
+                                data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SubscriptionStatusData)),
+                                backgroundColor: ['#198754', '#0dcaf0', '#ffc107', '#dc3545', '#6c757d']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'bottom' }
+                            }
+                        }
+                    });
+                }
+                </text>
+            }
+
+            // Chart 4: Plan distribution
+            @if (Model.PlanDistributionData.Any())
+            {
+                <text>
+                const planCtx = document.getElementById('planDistributionChart')?.getContext('2d');
+                if (planCtx) {
+                    new Chart(planCtx, {
+                        type: 'pie',
+                        data: {
+                            labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PlanDistributionLabels)),
+                            datasets: [{
+                                data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PlanDistributionData)),
+                                backgroundColor: ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#fd7e14']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'bottom' }
+                            }
+                        }
+                    });
+                }
+                </text>
+            }
+
+            // Chart 5: Payment success vs failure
+            @if (Model.PaymentStatusData.Any())
+            {
+                <text>
+                const payCtx = document.getElementById('paymentStatusChart')?.getContext('2d');
+                if (payCtx) {
+                    new Chart(payCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PaymentStatusLabels)),
+                            datasets: [{
+                                data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PaymentStatusData)),
+                                backgroundColor: ['#198754', '#ffc107', '#dc3545', '#6c757d']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'bottom' }
+                            }
+                        }
+                    });
+                }
+                </text>
+            }
+        });
+    </script>
+}
