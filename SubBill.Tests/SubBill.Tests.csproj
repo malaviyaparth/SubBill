@@ -12,6 +12,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.12" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.12" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="QuestPDF" Version="2026.9.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
@@ -42,6 +43,8 @@
     <Compile Include="..\Services\CouponService.cs" Link="Services\CouponService.cs" />
     <Compile Include="..\Services\ISubscriptionService.cs" Link="Services\ISubscriptionService.cs" />
     <Compile Include="..\Services\SubscriptionService.cs" Link="Services\SubscriptionService.cs" />
+    <Compile Include="..\Services\IInvoiceService.cs" Link="Services\IInvoiceService.cs" />
+    <Compile Include="..\Services\InvoiceService.cs" Link="Services\InvoiceService.cs" />
   </ItemGroup>
 
   <ItemGroup>

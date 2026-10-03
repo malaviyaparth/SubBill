@@ -215,7 +215,7 @@ namespace SubBill.Services
             // Automatically generate Invoice for successful payment (Phase 5 requirement)
             try
             {
-                await _invoiceService.CreateInvoiceForPaymentAsync(payment, subscription);
+                await _invoiceService.CreateInvoiceForPaymentAsync(payment, subscription, couponCode);
             }
             catch (Exception ex)
             {

@@ -1,91 +1,345 @@
 @model SubBill.Models.Invoice
 @{
-    ViewData["Title"] = $"Invoice {Model.InvoiceNumber}";
+    ViewData["Title"] = $"Tax Invoice {Model.InvoiceNumber}";
+    var plan = Model.Subscription?.Plan;
+    var planName = plan?.Name ?? "Subscription";
+    var cycle = plan?.BillingCycle.ToString() ?? "Monthly";
+    var features = plan?.Features?.ToList() ?? new List<SubBill.Models.PlanFeature>();
+    var customerName = string.IsNullOrWhiteSpace(Model.User?.FullName)
+        ? (Model.User?.UserName ?? "Valued Customer")
+        : Model.User.FullName;
 }
 
-<div class="container py-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <a asp-action="Index" class="btn btn-outline-secondary">&larr; Back to Invoices</a>
-        <a asp-action="Download" asp-route-id="@Model.Id" class="btn btn-primary">
-            Download PDF
+<div class="container py-4">
+    <!-- Top Action Buttons (Hidden during Print) -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2 d-print-none">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Invoices
         </a>
+        <div class="d-flex gap-2">
+            <button type="button" onclick="window.print()" class="btn btn-outline-dark">
+                <i class="bi bi-printer me-1"></i>Print Invoice
+            </button>
+            <a asp-action="Download" asp-route-id="@Model.Id" class="btn btn-primary shadow-sm">
+                <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
+            </a>
+        </div>
     </div>
 
-    <div class="card shadow-sm border-0 p-4">
-        <div class="card-body">
-            <div class="row border-bottom pb-4 mb-4">
-                <div class="col-sm-6">
-                    <h2 class="text-primary fw-bold">SubBill</h2>
-                    <p class="text-muted mb-0">Subscription & Billing Platform</p>
-                    <p class="text-muted">support@subbill.com</p>
-                </div>
-                <div class="col-sm-6 text-sm-end">
-                    <h3 class="text-uppercase fw-bold">TAX INVOICE</h3>
-                    <p class="mb-1"><strong>Invoice Number:</strong> @Model.InvoiceNumber</p>
-                    <p class="mb-1"><strong>Date:</strong> @Model.InvoiceDate.ToString("dd MMMM yyyy")</p>
-                    <p class="mb-0">
-                        <strong>Status:</strong>
-                        <span class="badge @(Model.Status == SubBill.Models.InvoiceStatus.Paid ? "bg-success" : "bg-warning text-dark")">
-                            @Model.Status
-                        </span>
+    <!-- Main Invoice Document Card -->
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden invoice-paper">
+        <div class="card-body p-4 p-md-5">
+
+            <!-- 1. Header: Company Info & Tax Invoice Title -->
+            <div class="row border-bottom pb-4 mb-4 align-items-start">
+                <div class="col-sm-7 mb-3 mb-sm-0">
+                    <div class="d-flex align-items-center mb-1">
+                        <i class="bi bi-shield-check text-primary fs-3 me-2"></i>
+                        <h2 class="text-primary fw-bold mb-0">SubBill Inc.</h2>
+                    </div>
+                    <p class="text-secondary small mb-1 fw-semibold">Cloud Software as a Service (SaaS) Platform</p>
+                    <p class="text-muted small mb-1">
+                        <strong>GSTIN:</strong> <code>27AABCS1429B1Z0</code> &bull; 
+                        <strong>SAC Code:</strong> <code>@Model.SacCode</code> &bull; 
+                        <strong>CIN:</strong> U72900MH2026PTC123456
+                    </p>
+                    <p class="text-muted small mb-0">
+                        SubBill Tower, Tech City, Maharashtra 400001, India &bull; support@subbill.com &bull; www.subbill.com
                     </p>
                 </div>
+                <div class="col-sm-5 text-sm-end">
+                    <span class="badge bg-primary text-uppercase px-3 py-2 fs-6 fw-bold tracking-wide">
+                        TAX INVOICE
+                    </span>
+                    <div class="mt-3">
+                        <div class="fw-bold text-dark fs-5">#@Model.InvoiceNumber</div>
+                        <div class="text-muted small"><strong>Invoice Date:</strong> @Model.InvoiceDate.ToString("dd MMMM yyyy")</div>
+                        <div class="text-muted small"><strong>Due Date:</strong> @Model.DueDate.ToString("dd MMMM yyyy")</div>
+                        <div class="mt-2">
+                            <span class="badge @(Model.Status == SubBill.Models.InvoiceStatus.Paid ? "bg-success" : "bg-warning text-dark") px-3 py-1 fs-6">
+                                <i class="bi bi-check-circle me-1"></i>@Model.Status.ToString().ToUpper()
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="row mb-4">
+            <!-- 2. Subscription Service Period Banner -->
+            <div class="alert alert-primary bg-primary-subtle border-primary-subtle rounded-3 p-3 mb-4">
+                <div class="row align-items-center">
+                    <div class="col-md-7">
+                        <div class="text-uppercase fw-bold text-primary small mb-1">
+                            <i class="bi bi-calendar3-range me-1"></i>Service Subscription Coverage Period
+                        </div>
+                        <div class="fs-6 fw-bold text-dark">
+                            @Model.PeriodStart.ToString("dd MMM yyyy") &mdash; @Model.PeriodEnd.ToString("dd MMM yyyy")
+                            <span class="badge bg-primary ms-2">@cycle Plan</span>
+                        </div>
+                    </div>
+                    <div class="col-md-5 text-md-end mt-2 mt-md-0 small text-muted">
+                        <div><strong>Service Type:</strong> @Model.ServiceDescription</div>
+                        <div><strong>Place of Supply:</strong> Maharashtra (State Code 27) &bull; Intra-state</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Customer & Payment Information Grid -->
+            <div class="row g-4 mb-4">
                 <div class="col-sm-6">
-                    <h6 class="text-muted text-uppercase fw-bold">Billed To:</h6>
-                    <h5 class="fw-bold mb-1">@(Model.User?.FullName ?? Model.User?.UserName ?? "Valued Customer")</h5>
-                    <p class="text-muted mb-0">@Model.User?.Email</p>
+                    <div class="p-3 bg-light rounded-3 h-100 border">
+                        <h6 class="text-muted text-uppercase fw-bold small mb-2">
+                            <i class="bi bi-person-fill text-primary me-1"></i>Billed To (Customer):
+                        </h6>
+                        <h5 class="fw-bold text-dark mb-1">@customerName</h5>
+                        <div class="text-muted small mb-1"><i class="bi bi-envelope me-1"></i>@Model.User?.Email</div>
+                        <div class="text-muted small mb-1"><i class="bi bi-person-badge me-1"></i>User ID: <span class="font-monospace">@Model.UserId</span></div>
+                        <div class="text-muted small"><i class="bi bi-geo-alt me-1"></i>State: Maharashtra (27) &bull; Consumer / B2C</div>
+                    </div>
                 </div>
-                <div class="col-sm-6 text-sm-end">
-                    <h6 class="text-muted text-uppercase fw-bold">Payment Information:</h6>
-                    <p class="mb-1"><strong>Gateway:</strong> @(Model.Payment?.PaymentGateway ?? "Online Gateway")</p>
-                    <p class="mb-1"><strong>Order ID:</strong> @(Model.Payment?.OrderId ?? "N/A")</p>
-                    <p class="mb-0"><strong>Transaction Ref:</strong> @(Model.Payment?.PaymentId ?? "N/A")</p>
+                <div class="col-sm-6">
+                    <div class="p-3 bg-light rounded-3 h-100 border">
+                        <h6 class="text-muted text-uppercase fw-bold small mb-2">
+                            <i class="bi bi-credit-card-fill text-primary me-1"></i>Payment Information:
+                        </h6>
+                        <div class="small mb-1">
+                            <span class="text-muted">Payment Gateway:</span>
+                            <strong class="text-dark">@(Model.Payment?.PaymentGateway ?? "Online Sandbox Gateway")</strong>
+                        </div>
+                        <div class="small mb-1">
+                            <span class="text-muted">Order ID:</span>
+                            <span class="font-monospace text-dark">@(Model.Payment?.OrderId ?? "N/A")</span>
+                        </div>
+                        <div class="small mb-1">
+                            <span class="text-muted">Transaction ID:</span>
+                            <span class="font-monospace text-dark">@(Model.Payment?.PaymentId ?? "N/A")</span>
+                        </div>
+                        <div class="small">
+                            <span class="text-muted">Paid On:</span>
+                            <strong class="text-success">
+                                @((Model.Payment?.PaymentDate ?? Model.CreatedAt).ToString("dd MMM yyyy, HH:mm UTC"))
+                            </strong>
+                        </div>
+                    </div>
                 </div>
             </div>
 
+            <!-- 4. Line Items Table with Full Plan Features List -->
             <div class="table-responsive mb-4">
-                <table class="table table-bordered">
+                <table class="table table-bordered align-middle mb-0">
                     <thead class="table-light">
-                        <tr>
-                            <th>Description</th>
-                            <th>Billing Cycle</th>
-                            <th class="text-end">Amount</th>
+                        <tr class="text-uppercase small text-muted">
+                            <th style="width: 40px;" class="text-center">#</th>
+                            <th>Description &amp; Included Features</th>
+                            <th class="text-center" style="width: 100px;">SAC</th>
+                            <th class="text-center" style="width: 160px;">Service Period</th>
+                            <th class="text-end" style="width: 120px;">Rate</th>
+                            <th class="text-end" style="width: 120px;">Discount</th>
+                            <th class="text-end" style="width: 130px;">Taxable Net</th>
+                            <th class="text-end" style="width: 130px;">Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
+                            <td class="text-center fw-bold">1</td>
                             <td>
-                                <strong>@(Model.Subscription?.Plan?.Name ?? "Subscription") Plan</strong>
-                                <div class="text-muted small">Access to platform services</div>
+                                <div class="fw-bold text-dark fs-6">@planName Subscription Plan</div>
+                                <div class="text-muted small mb-2">@Model.ServiceDescription</div>
+
+                                <!-- Features List -->
+                                @if (features.Any())
+                                {
+                                    <div class="p-2 bg-light-subtle rounded-3 border">
+                                        <div class="fw-semibold text-secondary small text-uppercase mb-1" style="font-size: 0.75rem;">
+                                            <i class="bi bi-stars text-warning me-1"></i>Included Plan Features:
+                                        </div>
+                                        <div class="row g-2">
+                                            @foreach (var feat in features)
+                                            {
+                                                <div class="col-sm-6">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="bi bi-check-circle-fill text-success me-1 small"></i>
+                                                        <span class="small">
+                                                            <strong>@feat.FeatureName:</strong> <span class="text-muted">@feat.FeatureValue</span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
                             </td>
-                            <td>@(Model.Subscription?.Plan?.BillingCycle.ToString() ?? "Monthly")</td>
-                            <td class="text-end">@Model.Currency @Model.Amount.ToString("F2")</td>
+                            <td class="text-center font-monospace small">@Model.SacCode</td>
+                            <td class="text-center small">
+                                <div>@Model.PeriodStart.ToString("dd MMM yyyy")</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">to</div>
+                                <div>@Model.PeriodEnd.ToString("dd MMM yyyy")</div>
+                                <span class="badge bg-light text-dark border mt-1" style="font-size: 0.7rem;">@cycle</span>
+                            </td>
+                            <td class="text-end font-monospace">@Model.Currency @Model.BasePlanPrice.ToString("F2")</td>
+                            <td class="text-end font-monospace">
+                                @if (Model.CouponDiscount > 0)
+                                {
+                                    <span class="text-success fw-semibold">-@Model.Currency @Model.CouponDiscount.ToString("F2")</span>
+                                    @if (!string.IsNullOrEmpty(Model.CouponCode))
+                                    {
+                                        <div class="text-muted small" style="font-size: 0.75rem;">(@Model.CouponCode)</div>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted">&mdash;</span>
+                                }
+                            </td>
+                            <td class="text-end font-monospace fw-semibold text-dark">
+                                @Model.Currency @Model.Amount.ToString("F2")
+                            </td>
+                            <td class="text-end font-monospace fw-bold text-dark">
+                                @Model.Currency @Model.TotalAmount.ToString("F2")
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <div class="row justify-content-end">
-                <div class="col-md-5">
-                    <table class="table table-borderless">
-                        <tr>
-                            <td class="text-muted">Subtotal (Net):</td>
-                            <td class="text-end">@Model.Currency @Model.Amount.ToString("F2")</td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted">GST / Tax (18%):</td>
-                            <td class="text-end">@Model.Currency @Model.TaxAmount.ToString("F2")</td>
-                        </tr>
-                        <tr class="border-top">
-                            <td class="fw-bold fs-5">Total Paid:</td>
-                            <td class="text-end fw-bold fs-5 text-primary">@Model.Currency @Model.TotalAmount.ToString("F2")</td>
-                        </tr>
-                    </table>
+            <!-- 5. Coupon Notice (If applied) -->
+            @if (!string.IsNullOrEmpty(Model.CouponCode))
+            {
+                <div class="alert alert-success d-flex align-items-center justify-content-between p-3 mb-4 rounded-3 border-success-subtle">
+                    <div>
+                        <i class="bi bi-tag-fill me-2 fs-5"></i>
+                        <strong>Promotional Coupon Applied:</strong>
+                        <code class="fs-6 ms-1 bg-white px-2 py-1 rounded border">@Model.CouponCode</code>
+                    </div>
+                    <div class="fw-bold fs-6">
+                        Discount Saved: -@Model.Currency @Model.CouponDiscount.ToString("F2")
+                    </div>
+                </div>
+            }
+
+            <!-- 6. GST Tax Schedule & Detailed Calculation Breakdown -->
+            <div class="row g-4 align-items-start mb-4">
+                <!-- Left: Official Indian GST Tax Schedule Table -->
+                <div class="col-lg-7">
+                    <div class="border rounded-3 p-3 bg-light-subtle h-100">
+                        <h6 class="fw-bold text-dark mb-2 small text-uppercase">
+                            <i class="bi bi-calculator text-primary me-1"></i>GST Tax Calculation Schedule
+                        </h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered text-center align-middle mb-2 bg-white small">
+                                <thead class="table-light">
+                                    <tr style="font-size: 0.75rem;">
+                                        <th>SAC</th>
+                                        <th>Taxable Value</th>
+                                        <th>CGST (9%)</th>
+                                        <th>SGST (9%)</th>
+                                        <th>Total GST (18%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="font-monospace">@Model.SacCode</td>
+                                        <td class="font-monospace">@Model.Currency @Model.Amount.ToString("F2")</td>
+                                        <td class="font-monospace">@Model.Currency @Model.CGST.ToString("F2")</td>
+                                        <td class="font-monospace">@Model.Currency @Model.SGST.ToString("F2")</td>
+                                        <td class="font-monospace fw-bold text-dark">@Model.Currency @Model.TaxAmount.ToString("F2")</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-muted mb-0" style="font-size: 0.75rem;">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>GST Breakdown:</strong> Standard rate of 18% GST (9% Central GST + 9% State GST) applicable for IT SaaS subscription services under HSN/SAC Code 998313.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Right: Summary Table -->
+                <div class="col-lg-5">
+                    <div class="card border rounded-3 p-3 bg-light">
+                        <table class="table table-borderless table-sm mb-0">
+                            @if (Model.CouponDiscount > 0)
+                            {
+                                <tr>
+                                    <td class="text-muted">Base Plan Price:</td>
+                                    <td class="text-end font-monospace">@Model.Currency @Model.BasePlanPrice.ToString("F2")</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-success fw-semibold">
+                                        <i class="bi bi-tag-fill me-1"></i>Coupon Discount (@Model.CouponCode):
+                                    </td>
+                                    <td class="text-end font-monospace text-success fw-semibold">
+                                        -@Model.Currency @Model.CouponDiscount.ToString("F2")
+                                    </td>
+                                </tr>
+                            }
+                            <tr>
+                                <td class="text-muted">Taxable Net Amount:</td>
+                                <td class="text-end font-monospace">@Model.Currency @Model.Amount.ToString("F2")</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Central GST (CGST 9%):</td>
+                                <td class="text-end font-monospace">@Model.Currency @Model.CGST.ToString("F2")</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">State GST (SGST 9%):</td>
+                                <td class="text-end font-monospace">@Model.Currency @Model.SGST.ToString("F2")</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-semibold text-dark">Total GST (18%):</td>
+                                <td class="text-end font-monospace fw-semibold text-dark">@Model.Currency @Model.TaxAmount.ToString("F2")</td>
+                            </tr>
+                            <tr class="border-top border-dark-subtle">
+                                <td class="fw-bold fs-5 text-dark pt-2">Total Paid:</td>
+                                <td class="text-end font-monospace fw-bold fs-5 text-primary pt-2">
+                                    @Model.Currency @Model.TotalAmount.ToString("F2")
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
                 </div>
             </div>
+
+            <!-- 7. Legal Declarations, Notes & Terms -->
+            <div class="border-top pt-4 text-muted small">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h6 class="fw-bold text-dark small text-uppercase mb-1">Terms &amp; Declarations:</h6>
+                        <ul class="list-unstyled mb-0" style="font-size: 0.8rem;">
+                            <li>1. Subscription fee grants continuous access to the selected platform tier and included features during the specified service coverage period.</li>
+                            <li>2. This is a computer-generated electronic tax invoice and does not require a physical signature under the Information Technology Act, 2000.</li>
+                            <li>3. All taxes have been computed in compliance with the Central Goods and Services Tax (CGST) and State Goods and Services Tax (SGST) Acts.</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                        <div class="fw-semibold text-dark">SubBill Inc.</div>
+                        <div style="font-size: 0.8rem;">Authorized Signatory &bull; Electronic Seal</div>
+                        <div class="text-success small fw-bold mt-1">
+                            <i class="bi bi-shield-fill-check me-1"></i>Digitally Verified
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
+
+<style>
+    @@media print {
+        body {
+            background-color: #fff !important;
+            font-size: 12pt;
+        }
+        .container {
+            max-width: 100% !important;
+            padding: 0 !important;
+        }
+        .invoice-paper {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .d-print-none {
+            display: none !important;
+        }
+    }
+</style>

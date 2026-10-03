@@ -41,27 +41,6 @@
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         @if (User.Identity != null && User.Identity.IsAuthenticated)
                         {
-                            @if (User.IsInRole("User"))
-                            {
-                                <!-- <li class="nav-item">
-                                    <a class="nav-link text-dark fw-medium" asp-area="" asp-controller="Subscription" asp-action="Index">Plans &amp; Pricing</a>
-                                </li> -->
-                                <li class="nav-item">
-                                    <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Subscription" asp-action="MySubscription">
-                                        <i class="bi bi-speedometer2 me-1 text-primary"></i>Billing Dashboard
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-dark fw-medium" asp-area="" asp-controller="Invoice" asp-action="Index">
-                                        <i class="bi bi-receipt me-1 text-secondary"></i>Invoices
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-dark fw-medium" asp-area="" asp-controller="Payment" asp-action="History">
-                                        <i class="bi bi-credit-card me-1 text-secondary"></i>Payments
-                                    </a>
-                                </li>
-                            }
                             @if (User.IsInRole("Admin"))
                             {
                                 <li class="nav-item">
@@ -89,6 +68,24 @@
                                 <li class="nav-item">
                                     <a class="nav-link text-dark fw-medium" asp-area="" asp-controller="Admin" asp-action="AuditLogs">Audit Logs</a>
                                 </li>
+                            }
+                            else if (User.IsInRole("User"))
+                                {
+                                    <li class="nav-item">
+                                        <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Subscription" asp-action="MySubscription">
+                                            <i class="bi bi-speedometer2 me-1 text-primary"></i>Billing Dashboard
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link text-dark fw-medium" asp-area="" asp-controller="Invoice" asp-action="Index">
+                                            <i class="bi bi-receipt me-1 text-secondary"></i>Invoices
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link text-dark fw-medium" asp-area="" asp-controller="Payment" asp-action="History">
+                                            <i class="bi bi-credit-card me-1 text-secondary"></i>Payments
+                                        </a>
+                                    </li>
                             }
                         }
                     </ul>

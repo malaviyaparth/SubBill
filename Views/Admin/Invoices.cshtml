@@ -84,7 +84,9 @@
                         {
                             <tr>
                                 <td>
-                                    <strong class="text-primary">@inv.InvoiceNumber</strong>
+                                    <a asp-controller="Invoice" asp-action="Details" asp-route-id="@inv.Id" class="fw-bold text-primary text-decoration-none">
+                                        @inv.InvoiceNumber
+                                    </a>
                                 </td>
                                 <td>
                                     <div class="fw-semibold">@(inv.User?.FullName ?? inv.User?.UserName ?? "Customer")</div>
@@ -105,6 +107,9 @@
                                 </td>
                                 <td>@inv.InvoiceDate.ToString("dd MMM yyyy")</td>
                                 <td class="text-end">
+                                    <a asp-controller="Invoice" asp-action="Details" asp-route-id="@inv.Id" class="btn btn-sm btn-outline-secondary me-1" title="View Tax Invoice">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
                                     <a asp-action="DownloadInvoice" asp-route-id="@inv.Id" class="btn btn-sm btn-outline-primary" title="Download PDF Invoice">
                                         <i class="bi bi-file-earmark-pdf me-1"></i>Download
                                     </a>

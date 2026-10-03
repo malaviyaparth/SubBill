@@ -533,10 +533,15 @@
                                                 <a asp-controller="Invoice" asp-action="Details" asp-route-id="@inv.Id" class="fw-bold text-primary text-decoration-none">
                                                     @inv.InvoiceNumber
                                                 </a>
-                                                <div class="small text-muted">@(inv.Subscription?.Plan?.Name ?? "Subscription")</div>
+                                                <div class="small text-muted">
+                                                    @(inv.Subscription?.Plan?.Name ?? "Subscription") Plan &bull; Coverage: @inv.PeriodStart.ToString("dd MMM") &ndash; @inv.PeriodEnd.ToString("dd MMM yyyy")
+                                                </div>
                                             </td>
                                             <td>@inv.InvoiceDate.ToString("dd MMM yyyy")</td>
-                                            <td><strong>@inv.Currency @inv.TotalAmount.ToString("F2")</strong></td>
+                                            <td>
+                                                <div><strong>@inv.Currency @inv.TotalAmount.ToString("F2")</strong></div>
+                                                <div class="text-muted" style="font-size: 0.75rem;">Taxable: @inv.Currency @inv.Amount.ToString("F2") | GST: @inv.Currency @inv.TaxAmount.ToString("F2")</div>
+                                            </td>
                                             <td>
                                                 <span class="badge @(inv.Status == SubBill.Models.InvoiceStatus.Paid ? "bg-success" : "bg-warning text-dark")">
                                                     @inv.Status
