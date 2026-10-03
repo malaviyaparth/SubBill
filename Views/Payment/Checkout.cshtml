@@ -1,99 +1,274 @@
 @model SubBill.Models.Payment
 @{
-    ViewData["Title"] = "Payment Checkout";
+    ViewData["Title"] = "Demo Payment Checkout";
     var plan = ViewBag.Plan as SubBill.Models.SubscriptionPlan;
     var razorpayKey = ViewBag.RazorpayKey as string;
     var initialCoupon = ViewBag.CouponCode as string;
+    var isUpgrade = ViewBag.IsUpgrade == true;
     var originalPrice = plan?.Price ?? Model.Amount;
     var initialDiscount = originalPrice - Model.Amount;
+    if (initialDiscount < 0) initialDiscount = 0;
 }
 
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-7">
-            <div class="card shadow-sm border-0 rounded-3">
-                <div class="card-header bg-primary text-white py-3">
-                    <h5 class="mb-0 fw-bold"><i class="bi bi-shield-check me-2"></i>Secure Payment Checkout</h5>
+<div class="container py-4">
+    <!-- Breadcrumb & Header -->
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a asp-controller="Subscription" asp-action="MySubscription">Dashboard</a></li>
+                <li class="breadcrumb-item"><a asp-controller="Subscription" asp-action="Index">Plans</a></li>
+                <li class="breadcrumb-item active">Checkout</li>
+            </ol>
+        </nav>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <h2 class="fw-bold text-dark mb-1">
+                    <i class="bi bi-credit-card-2-front text-primary me-2"></i>Payment Checkout
+                </h2>
+                <p class="text-muted mb-0">Complete your subscription transaction in the simulated demo payment environment.</p>
+            </div>
+            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning px-3 py-2 rounded-pill fw-bold">
+                <i class="bi bi-controller me-1"></i>Demo Sandbox Active
+            </span>
+        </div>
+    </div>
+
+    @if (isUpgrade)
+    {
+        <div class="alert alert-success border-success-subtle shadow-sm rounded-4 mb-4">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-arrow-up-circle-fill text-success fs-3 me-3"></i>
+                <div>
+                    <h5 class="fw-bold mb-1">Plan Upgrade Checkout</h5>
+                    <p class="mb-0 text-muted small">
+                        You are upgrading to the <strong>@plan?.Name</strong> plan. Completing this demo payment will instantly activate your upgraded entitlements and issue an invoice.
+                    </p>
                 </div>
+            </div>
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- LEFT: Payment Method Simulator -->
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white border-bottom py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-dark fs-5">
+                            <i class="bi bi-wallet2 text-primary me-2"></i>Select Demo Payment Method
+                        </span>
+                        <span class="badge bg-success-subtle text-success border border-success">
+                            <i class="bi bi-shield-lock me-1"></i>Demo / Test Mode
+                        </span>
+                    </div>
+                </div>
+
                 <div class="card-body p-4">
-                    <!-- Order & Plan Summary -->
-                    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
-                        <div>
-                            <h5 class="mb-1 text-dark fw-bold">@plan?.Name Subscription</h5>
-                            <span class="text-muted small">Billing Cycle: <strong>@plan?.BillingCycle</strong></span>
-                        </div>
-                        <div class="text-end">
-                            <div class="text-muted small">Base Price: ₹@originalPrice.ToString("F2")</div>
-                            <h4 id="displayFinalAmount" class="text-primary fw-bold mb-0">₹@Model.Amount.ToString("F2")</h4>
-                            <small class="text-muted">Total Payable</small>
-                        </div>
-                    </div>
-
-                    <!-- Discount Preview Card (when coupon is active) -->
-                    <div id="discountPreviewContainer" class="p-3 mb-3 bg-success-subtle text-success-emphasis rounded-3 @(initialDiscount > 0 ? "" : "d-none")">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="bi bi-tag-fill me-1"></i>
-                                <span class="fw-bold" id="appliedCouponCodeDisplay">@initialCoupon</span>
-                                <span class="small text-muted ms-2" id="couponMessageDisplay">Applied</span>
-                            </div>
-                            <div>
-                                <span class="badge bg-success fs-6" id="discountAmountDisplay">-₹@initialDiscount.ToString("F2")</span>
+                    <!-- Demo Notice Box -->
+                    <div class="p-3 bg-light rounded-3 mb-4 border">
+                        <div class="d-flex">
+                            <i class="bi bi-info-circle-fill text-primary fs-5 me-2 mt-1"></i>
+                            <div class="small text-muted">
+                                <strong>Simulation Mode:</strong> No real bank accounts or debit/credit cards will be billed. Choose any demo method below and click <strong>Process Demo Payment</strong> to simulate a live successful transaction.
                             </div>
                         </div>
                     </div>
 
-                    <!-- COUPON REDEMPTION SECTION (Phase 9) -->
-                    <div class="card bg-light border-0 rounded-3 p-3 mb-4">
-                        <label class="form-label fw-bold small text-dark mb-2">
-                            <i class="bi bi-ticket-perforated me-1 text-primary"></i>Have a Promotional Coupon?
-                        </label>
-                        <div class="input-group">
-                            <input type="text" id="couponInput" class="form-control" placeholder="Enter coupon code (e.g. SAVE20)" value="@initialCoupon" />
-                            <button type="button" id="applyCouponBtn" class="btn btn-outline-primary">
-                                <span id="couponSpinner" class="spinner-border spinner-border-sm me-1 d-none"></span>
-                                Apply Coupon
+                    <!-- Payment Method Tabs -->
+                    <ul class="nav nav-pills nav-fill mb-3" id="demoPaymentTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active fw-semibold" id="card-tab" data-bs-toggle="pill" data-bs-target="#cardPane" type="button" role="tab">
+                                <i class="bi bi-credit-card me-1"></i>Demo Card
                             </button>
-                        </div>
-                        <div id="couponValidationAlert" class="small mt-2 d-none"></div>
-                    </div>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-semibold" id="upi-tab" data-bs-toggle="pill" data-bs-target="#upiPane" type="button" role="tab">
+                                <i class="bi bi-phone me-1"></i>Demo UPI
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-semibold" id="netbanking-tab" data-bs-toggle="pill" data-bs-target="#netbankingPane" type="button" role="tab">
+                                <i class="bi bi-bank me-1"></i>Net Banking
+                            </button>
+                        </li>
+                    </ul>
 
-                    <div class="alert alert-info py-2 small mb-4">
-                        <strong>Test Sandbox Gateway:</strong> Razorpay Simulated Environment. Key: <code>@razorpayKey</code> | Order: <code>@Model.OrderId</code>
-                    </div>
-
-                    <!-- Payment Submission Form -->
-                    <form id="paymentForm" asp-action="ProcessPayment" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="orderId" value="@Model.OrderId" />
-                        <input type="hidden" id="couponCodeHidden" name="couponCode" value="@initialCoupon" />
-                        <input type="hidden" id="paymentId" name="paymentId" value="pay_test_@Guid.NewGuid().ToString("N")[..12]" />
-                        <input type="hidden" id="signature" name="signature" value="test_signature_valid" />
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small text-dark">Payment Method</label>
-                            <div class="border rounded-3 p-3 bg-white">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="paymentMethod" id="cardMethod" checked>
-                                    <label class="form-check-label fw-semibold" for="cardMethod">
-                                        <i class="bi bi-credit-card me-1"></i>Razorpay Simulated Gateway (Cards, NetBanking, UPI)
-                                    </label>
+                    <div class="tab-content border rounded-3 p-3 bg-white mb-4" id="demoPaymentTabsContent">
+                        <!-- TAB 1: Demo Card -->
+                        <div class="tab-pane fade show active" id="cardPane" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label small fw-bold text-muted mb-1">Simulated Card Number</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="bi bi-credit-card-2-back text-primary"></i></span>
+                                        <input type="text" class="form-control font-monospace" value="4111 2222 3333 4444" readonly />
+                                        <span class="input-group-text bg-light text-success small fw-bold"><i class="bi bi-check-circle me-1"></i>VISA Demo</span>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label small fw-bold text-muted mb-1">Cardholder Name</label>
+                                    <input type="text" class="form-control" value="Demo Subscriber" readonly />
+                                </div>
+                                <div class="col-sm-3 col-6">
+                                    <label class="form-label small fw-bold text-muted mb-1">Expires</label>
+                                    <input type="text" class="form-control text-center" value="12 / 28" readonly />
+                                </div>
+                                <div class="col-sm-3 col-6">
+                                    <label class="form-label small fw-bold text-muted mb-1">CVV</label>
+                                    <input type="password" class="form-control text-center font-monospace" value="999" readonly />
                                 </div>
                             </div>
                         </div>
 
-                        <div class="d-grid gap-2 mt-4">
-                            <button type="submit" id="submitPaymentBtn" class="btn btn-success btn-lg fw-bold">
-                                Pay <span id="btnPayAmount">₹@Model.Amount.ToString("F2")</span> &amp; Activate
+                        <!-- TAB 2: Demo UPI -->
+                        <div class="tab-pane fade" id="upiPane" role="tabpanel">
+                            <div class="text-center py-2">
+                                <div class="mb-2">
+                                    <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-1">Instant VPA Simulation</span>
+                                </div>
+                                <div class="input-group mb-2">
+                                    <span class="input-group-text bg-light"><i class="bi bi-upc-scan text-success"></i></span>
+                                    <input type="text" class="form-control font-monospace" value="demo.subscriber@okaxis" readonly />
+                                </div>
+                                <small class="text-muted">Simulated UPI collect request will be auto-approved upon confirmation.</small>
+                            </div>
+                        </div>
+
+                        <!-- TAB 3: Demo Net Banking -->
+                        <div class="tab-pane fade" id="netbankingPane" role="tabpanel">
+                            <div class="py-2">
+                                <label class="form-label small fw-bold text-muted mb-1">Select Simulated Bank</label>
+                                <select class="form-select mb-2">
+                                    <option selected>HDFC Demo Bank - Simulated NetBanking</option>
+                                    <option>State Bank of India - Demo Sandbox</option>
+                                    <option>ICICI Demo Bank - Instant Simulation</option>
+                                    <option>Axis Demo Bank - Test Gateway</option>
+                                </select>
+                                <small class="text-muted">Direct simulated merchant transfer with instant authorization.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hidden Payment Form (Submitted via JS or direct click) -->
+                    <form id="paymentForm" asp-action="ProcessPayment" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="orderId" value="@Model.OrderId" />
+                        <input type="hidden" name="planId" value="@(plan?.Id ?? 0)" />
+                        <input type="hidden" id="couponCodeHidden" name="couponCode" value="@initialCoupon" />
+                        <input type="hidden" name="isUpgrade" value="@(isUpgrade ? "true" : "false")" />
+                        <input type="hidden" id="paymentId" name="paymentId" value="pay_demo_@Guid.NewGuid().ToString("N")[..12]" />
+                        <input type="hidden" id="signature" name="signature" value="demo_payment_success" />
+                        <input type="hidden" id="simulateFailure" name="simulateFailure" value="false" />
+
+                        <!-- Primary Action: Successful Demo Payment -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" id="submitSuccessBtn" class="btn btn-success btn-lg fw-bold py-3 shadow-sm">
+                                <span id="successSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status"></span>
+                                <i class="bi bi-check-circle-fill me-1" id="successIcon"></i>
+                                Pay <span id="btnPayAmount">₹@Model.Amount.ToString("F2")</span> &amp; Activate (Demo)
                             </button>
-                            <a asp-controller="Subscription" asp-action="Index" class="btn btn-outline-secondary">
-                                Cancel
+
+                            <!-- Secondary Action: Simulate Decline / Failure -->
+                            <button type="button" id="submitFailBtn" class="btn btn-outline-danger btn-sm py-2">
+                                <span id="failSpinner" class="spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+                                <i class="bi bi-x-circle me-1" id="failIcon"></i>
+                                Simulate Payment Failure (Test Decline Flow)
+                            </button>
+
+                            <a asp-controller="Subscription" asp-action="MySubscription" class="btn btn-link text-muted text-decoration-none small mt-1">
+                                <i class="bi bi-arrow-left me-1"></i>Cancel and Return to Dashboard
                             </a>
                         </div>
                     </form>
                 </div>
-                <div class="card-footer bg-light text-center py-3 text-muted small">
-                    <i class="bi bi-shield-lock text-success me-1"></i>256-bit encrypted test transaction.
+
+                <div class="card-footer bg-light py-3 text-center text-muted small">
+                    <i class="bi bi-shield-check text-success me-1"></i>
+                    Simulated Sandbox Gateway &bull; Reference Order: <code>@Model.OrderId</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Order Summary & Coupon Card -->
+        <div class="col-lg-5">
+            <div class="card shadow-sm border-0 rounded-4 mb-4">
+                <div class="card-header bg-white border-bottom py-3">
+                    <span class="fw-bold text-dark fs-5">
+                        <i class="bi bi-receipt text-primary me-2"></i>Order Summary
+                    </span>
+                </div>
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="fw-bold text-dark mb-0">@plan?.Name Plan</h5>
+                            <span class="text-muted small">Billing Cycle: @plan?.BillingCycle</span>
+                        </div>
+                        <span class="badge bg-primary-subtle text-primary border border-primary px-2 py-1">
+                            @plan?.BillingCycle
+                        </span>
+                    </div>
+
+                    @if (plan?.Features != null && plan.Features.Any())
+                    {
+                        <div class="bg-light p-3 rounded-3 mb-3 small">
+                            <div class="fw-semibold text-muted mb-2 text-uppercase" style="font-size: 0.75rem;">Included Features:</div>
+                            <ul class="list-unstyled mb-0">
+                                @foreach (var feat in plan.Features.Take(4))
+                                {
+                                    <li class="mb-1 text-dark">
+                                        <i class="bi bi-check2 text-success me-1"></i><strong>@feat.FeatureName:</strong> @feat.FeatureValue
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    <div class="border-top pt-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Base Plan Price</span>
+                            <span class="fw-semibold text-dark">₹@originalPrice.ToString("F2")</span>
+                        </div>
+
+                        <!-- Discount Container -->
+                        <div id="discountRow" class="d-flex justify-content-between mb-2 text-success fw-semibold @(initialDiscount > 0 ? "" : "d-none")">
+                            <span>
+                                <i class="bi bi-tag-fill me-1"></i>Discount (<span id="appliedCouponDisplay">@initialCoupon</span>)
+                            </span>
+                            <span id="discountValueDisplay">-₹@initialDiscount.ToString("F2")</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">GST / Tax (Included)</span>
+                            <span class="text-muted">₹0.00</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-2">
+                            <div>
+                                <div class="fs-6 fw-bold text-dark">Total Amount</div>
+                                <small class="text-muted">All taxes included</small>
+                            </div>
+                            <div class="text-end">
+                                <h3 id="displayFinalAmount" class="text-primary fw-bold mb-0">₹@Model.Amount.ToString("F2")</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coupon Box -->
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4">
+                    <label class="form-label fw-bold text-dark mb-2">
+                        <i class="bi bi-ticket-perforated text-primary me-1"></i>Have a Coupon Code?
+                    </label>
+                    <div class="input-group">
+                        <input type="text" id="couponInput" class="form-control" placeholder="e.g. SAVE20" value="@initialCoupon" />
+                        <button type="button" id="applyCouponBtn" class="btn btn-outline-primary fw-semibold">
+                            <span id="couponSpinner" class="spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+                            Apply
+                        </button>
+                    </div>
+                    <div id="couponValidationAlert" class="small mt-2 d-none"></div>
                 </div>
             </div>
         </div>
@@ -104,19 +279,49 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const planId = @(plan?.Id ?? 0);
+            const isUpgrade = @(isUpgrade ? "true" : "false");
             const originalPrice = @originalPrice;
             const applyBtn = document.getElementById('applyCouponBtn');
             const couponInput = document.getElementById('couponInput');
             const alertBox = document.getElementById('couponValidationAlert');
-            const spinner = document.getElementById('couponSpinner');
-            const previewContainer = document.getElementById('discountPreviewContainer');
-            const appliedCodeDisplay = document.getElementById('appliedCouponCodeDisplay');
-            const discountDisplay = document.getElementById('discountAmountDisplay');
-            const messageDisplay = document.getElementById('couponMessageDisplay');
+            const couponSpinner = document.getElementById('couponSpinner');
+            const discountRow = document.getElementById('discountRow');
+            const appliedCouponDisplay = document.getElementById('appliedCouponDisplay');
+            const discountValueDisplay = document.getElementById('discountValueDisplay');
             const finalDisplay = document.getElementById('displayFinalAmount');
             const btnPayAmount = document.getElementById('btnPayAmount');
             const couponHidden = document.getElementById('couponCodeHidden');
 
+            const paymentForm = document.getElementById('paymentForm');
+            const submitSuccessBtn = document.getElementById('submitSuccessBtn');
+            const submitFailBtn = document.getElementById('submitFailBtn');
+            const successSpinner = document.getElementById('successSpinner');
+            const failSpinner = document.getElementById('failSpinner');
+            const simulateFailureInput = document.getElementById('simulateFailure');
+            const signatureInput = document.getElementById('signature');
+
+            // Handle successful demo payment submit
+            paymentForm.addEventListener('submit', function (e) {
+                successSpinner.classList.remove('d-none');
+                document.getElementById('successIcon')?.classList.add('d-none');
+                submitSuccessBtn.style.pointerEvents = 'none';
+                submitSuccessBtn.classList.add('opacity-75');
+                submitFailBtn.style.pointerEvents = 'none';
+            });
+
+            // Handle simulated failure payment submit
+            submitFailBtn.addEventListener('click', function () {
+                simulateFailureInput.value = 'true';
+                signatureInput.value = 'demo_failure_simulation';
+                failSpinner.classList.remove('d-none');
+                document.getElementById('failIcon')?.classList.add('d-none');
+                submitSuccessBtn.style.pointerEvents = 'none';
+                submitFailBtn.style.pointerEvents = 'none';
+                submitFailBtn.classList.add('opacity-75');
+                paymentForm.submit();
+            });
+
+            // Coupon Application
             applyBtn.addEventListener('click', async function () {
                 const code = couponInput.value.trim();
                 if (!code) {
@@ -125,7 +330,7 @@
                 }
 
                 applyBtn.disabled = true;
-                spinner.classList.remove('d-none');
+                couponSpinner.classList.remove('d-none');
                 alertBox.classList.add('d-none');
 
                 try {
@@ -142,19 +347,18 @@
 
                     if (data.isValid) {
                         showAlert(data.message, 'text-success fw-bold');
-                        previewContainer.classList.remove('d-none');
-                        appliedCodeDisplay.textContent = data.code;
-                        messageDisplay.textContent = 'Discount Applied';
-                        discountDisplay.textContent = '-₹' + Number(data.discount).toFixed(2);
+                        discountRow.classList.remove('d-none');
+                        appliedCouponDisplay.textContent = data.code;
+                        discountValueDisplay.textContent = '-₹' + Number(data.discount).toFixed(2);
                         finalDisplay.textContent = '₹' + Number(data.finalAmount).toFixed(2);
                         btnPayAmount.textContent = '₹' + Number(data.finalAmount).toFixed(2);
                         couponHidden.value = data.code;
 
-                        // Reload checkout with this coupon to create or sync the order on backend
-                        window.location.href = `/Payment/Checkout?planId=${planId}&couponCode=${encodeURIComponent(data.code)}`;
+                        // Reload checkout with coupon applied to sync order on backend
+                        window.location.href = `/Payment/Checkout?planId=${planId}&couponCode=${encodeURIComponent(data.code)}&isUpgrade=${isUpgrade}`;
                     } else {
                         showAlert(data.message, 'text-danger fw-semibold');
-                        previewContainer.classList.add('d-none');
+                        discountRow.classList.add('d-none');
                         finalDisplay.textContent = '₹' + Number(originalPrice).toFixed(2);
                         btnPayAmount.textContent = '₹' + Number(originalPrice).toFixed(2);
                         couponHidden.value = '';
@@ -163,7 +367,7 @@
                     showAlert('Failed to validate coupon. Please try again.', 'text-danger');
                 } finally {
                     applyBtn.disabled = false;
-                    spinner.classList.add('d-none');
+                    couponSpinner.classList.add('d-none');
                 }
             });
 

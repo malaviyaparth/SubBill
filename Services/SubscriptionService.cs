@@ -369,10 +369,25 @@ namespace SubBill.Services
                 throw new InvalidOperationException($"The '{plan.Name}' plan does not offer a free trial.");
             }
 
-            var canTakeTrial = await CanUserTakeTrialAsync(userId, planId);
-            if (!canTakeTrial)
+            var isCurrentlyActive = await _context.UserSubscriptions
+                .AnyAsync(s => s.UserId == userId && s.PlanId == planId && s.Status == SubscriptionStatus.Active);
+            if (isCurrentlyActive)
             {
-                throw new InvalidOperationException("You have already redeemed a free trial or currently have an active subscription.");
+                throw new InvalidOperationException($"You already have an active subscription to the '{plan.Name}' plan.");
+            }
+
+            var isCurrentlyTrialing = await _context.UserSubscriptions
+                .AnyAsync(s => s.UserId == userId && s.Status == SubscriptionStatus.Trialing && s.TrialEndDate > DateTime.UtcNow);
+            if (isCurrentlyTrialing)
+            {
+                throw new InvalidOperationException("You already have an active free trial in progress. You can upgrade to a paid plan anytime.");
+            }
+
+            var alreadyUsedTrial = await _context.UserSubscriptions
+                .AnyAsync(s => s.UserId == userId && (s.HasUsedTrial || s.TrialStartDate != null));
+            if (alreadyUsedTrial)
+            {
+                throw new InvalidOperationException("You have already redeemed a free trial on this platform. Free trials are limited to one per account.");
             }
 
             // Clean up any existing records
@@ -411,6 +426,7 @@ namespace SubBill.Services
             _context.UserSubscriptions.Add(trialSub);
             await _context.SaveChangesAsync();
 
+            trialSub.Plan = plan;
             return trialSub;
         }
 

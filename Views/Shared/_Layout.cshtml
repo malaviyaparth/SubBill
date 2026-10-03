@@ -43,8 +43,13 @@
                         {
                             @if (User.IsInRole("User"))
                             {
-                                <li class="nav-item">
+                                <!-- <li class="nav-item">
                                     <a class="nav-link text-dark fw-medium" asp-area="" asp-controller="Subscription" asp-action="Index">Plans &amp; Pricing</a>
+                                </li> -->
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark fw-semibold" asp-area="" asp-controller="Subscription" asp-action="MySubscription">
+                                        <i class="bi bi-speedometer2 me-1 text-primary"></i>Billing Dashboard
+                                    </a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link text-dark fw-medium" asp-area="" asp-controller="Invoice" asp-action="Index">

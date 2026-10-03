@@ -52,7 +52,7 @@ namespace SubBill.Controllers
         }
 
         // GET: /Subscription/Subscribe/5
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> Subscribe(int id)
         {
             var plan = await _context.SubscriptionPlans
@@ -70,10 +70,9 @@ namespace SubBill.Controllers
             return View(plan);
         }
 
-        // POST: /Subscription/StartTrial/5 (Phase 10 Free Trial)
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "User")]
+        // GET & POST: /Subscription/StartTrial/5 (Phase 10 Free Trial)
+        [AcceptVerbs("GET", "POST")]
+        [Authorize]
         public async Task<IActionResult> StartTrial(int id)
         {
             var userId = _userManager.GetUserId(User);
@@ -95,7 +94,7 @@ namespace SubBill.Controllers
         // POST: /Subscription/Subscribe/5
         [HttpPost, ActionName("Subscribe")]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> SubscribeConfirmed(int id)
         {
             var userId = _userManager.GetUserId(User);
@@ -111,7 +110,7 @@ namespace SubBill.Controllers
         // POST: /Subscription/DirectSubscribe (Test/Sandbox fallback to directly activate without payment)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> DirectSubscribe(int id)
         {
             var userId = _userManager.GetUserId(User);
@@ -132,7 +131,7 @@ namespace SubBill.Controllers
 
         // GET: /Subscription/MySubscription
         [HttpGet]
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> MySubscription(int paymentsPage = 1, int invoicesPage = 1, int historyPage = 1, string tab = "overview")
         {
             var userId = _userManager.GetUserId(User);
@@ -190,9 +189,12 @@ namespace SubBill.Controllers
                 .ToListAsync();
 
             var paymentIds = paymentEntities.Select(p => p.Id).ToList();
-            var invoicesForPayments = await _context.Invoices
+            var invoiceList = await _context.Invoices
                 .Where(i => i.PaymentId.HasValue && paymentIds.Contains(i.PaymentId.Value))
-                .ToDictionaryAsync(i => i.PaymentId!.Value);
+                .ToListAsync();
+            var invoicesForPayments = invoiceList
+                .GroupBy(i => i.PaymentId!.Value)
+                .ToDictionary(g => g.Key, g => g.First());
 
             var paymentItems = paymentEntities.Select(p => new PaymentHistoryItemViewModel
             {
@@ -254,7 +256,7 @@ namespace SubBill.Controllers
         }
 
         // GET: /Subscription/Dashboard
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> Dashboard(int paymentsPage = 1, int invoicesPage = 1, int historyPage = 1, string tab = "overview")
         {
             return await MySubscription(paymentsPage, invoicesPage, historyPage, tab);
@@ -263,7 +265,7 @@ namespace SubBill.Controllers
         // POST: /Subscription/ToggleAutoRenew
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> ToggleAutoRenew(int id, bool enable)
         {
             var userId = _userManager.GetUserId(User);
@@ -285,7 +287,7 @@ namespace SubBill.Controllers
         // POST: /Subscription/Renew
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> Renew(int id)
         {
             var userId = _userManager.GetUserId(User);
@@ -305,7 +307,7 @@ namespace SubBill.Controllers
         }
 
         // GET: /Subscription/Cancel/5
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> Cancel(int id)
         {
             var userId = _userManager.GetUserId(User);
@@ -323,7 +325,7 @@ namespace SubBill.Controllers
         // POST: /Subscription/Cancel/5
         [HttpPost, ActionName("Cancel")]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> CancelConfirmed(int id, string? reason)
         {
             var userId = _userManager.GetUserId(User);
@@ -343,7 +345,7 @@ namespace SubBill.Controllers
         }
 
         // GET: /Subscription/ChangePlan
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> ChangePlan()
         {
             var userId = _userManager.GetUserId(User);
@@ -366,32 +368,19 @@ namespace SubBill.Controllers
             return View(plans);
         }
 
-        // POST: /Subscription/Upgrade
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "User")]
-        public async Task<IActionResult> Upgrade(int newPlanId)
+        // GET or POST: /Subscription/Upgrade
+        [AcceptVerbs("GET", "POST")]
+        [Authorize]
+        public IActionResult Upgrade(int newPlanId)
         {
-            var userId = _userManager.GetUserId(User);
-            if (string.IsNullOrEmpty(userId)) return Challenge();
-
-            try
-            {
-                var updated = await _subscriptionService.UpgradeSubscriptionAsync(userId, newPlanId);
-                TempData["Message"] = $"Your subscription has been successfully upgraded to {updated.Plan?.Name}!";
-            }
-            catch (Exception ex)
-            {
-                TempData["Error"] = ex.Message;
-            }
-
-            return RedirectToAction(nameof(MySubscription));
+            // Upgrading plan requires payment checkout first!
+            return RedirectToAction("Checkout", "Payment", new { planId = newPlanId, isUpgrade = true });
         }
 
         // POST: /Subscription/Downgrade
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> Downgrade(int newPlanId)
         {
             var userId = _userManager.GetUserId(User);
@@ -413,11 +402,26 @@ namespace SubBill.Controllers
         // POST: /Subscription/ConfirmChangePlan
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> ConfirmChangePlan(int newPlanId)
         {
             var userId = _userManager.GetUserId(User);
             if (string.IsNullOrEmpty(userId)) return Challenge();
+
+            var currentSub = await _subscriptionService.GetCurrentSubscriptionAsync(userId);
+            var newPlan = await _context.SubscriptionPlans.FindAsync(newPlanId);
+
+            if (newPlan == null)
+            {
+                TempData["Error"] = "Target subscription plan not found.";
+                return RedirectToAction(nameof(ChangePlan));
+            }
+
+            // If it's an upgrade (new plan price > current plan price), ask for payment via checkout!
+            if (currentSub?.Plan == null || newPlan.Price > currentSub.Plan.Price)
+            {
+                return RedirectToAction("Checkout", "Payment", new { planId = newPlanId, isUpgrade = true });
+            }
 
             try
             {
@@ -433,7 +437,7 @@ namespace SubBill.Controllers
         }
 
         // GET: /Subscription/History
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> History()
         {
             var userId = _userManager.GetUserId(User);

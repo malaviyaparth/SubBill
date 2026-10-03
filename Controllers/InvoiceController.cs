@@ -19,7 +19,7 @@ namespace SubBill.Controllers
         }
 
         // GET: /Invoice
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> Index()
         {
             var userId = _userManager.GetUserId(User);

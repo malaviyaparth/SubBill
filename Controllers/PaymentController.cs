@@ -14,20 +14,23 @@ namespace SubBill.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IPaymentService _paymentService;
+        private readonly ILogger<PaymentController> _logger;
 
         public PaymentController(
             ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
-            IPaymentService paymentService)
+            IPaymentService paymentService,
+            ILogger<PaymentController> logger)
         {
             _context = context;
             _userManager = userManager;
             _paymentService = paymentService;
+            _logger = logger;
         }
 
-        // GET: /Payment/Checkout?planId=2&couponCode=SAVE20
-        [Authorize(Roles = "User")]
-        public async Task<IActionResult> Checkout(int planId, string? couponCode = null)
+        // GET: /Payment/Checkout?planId=2&couponCode=SAVE20&isUpgrade=true
+        [Authorize]
+        public async Task<IActionResult> Checkout(int planId, string? couponCode = null, bool isUpgrade = false)
         {
             var userId = _userManager.GetUserId(User);
             if (string.IsNullOrEmpty(userId)) return Challenge();
@@ -40,31 +43,51 @@ namespace SubBill.Controllers
             ViewBag.Plan = plan;
             ViewBag.RazorpayKey = _paymentService.GetKeyId();
             ViewBag.CouponCode = couponCode;
+            ViewBag.IsUpgrade = isUpgrade;
             return View(payment);
         }
 
         // POST: /Payment/ProcessPayment
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "User")]
-        public async Task<IActionResult> ProcessPayment(string orderId, string paymentId, string signature, string? couponCode = null)
+        [Authorize]
+        public async Task<IActionResult> ProcessPayment(
+            string orderId,
+            string paymentId,
+            string signature,
+            int planId,
+            string? couponCode = null,
+            bool isUpgrade = false,
+            bool simulateFailure = false)
         {
             var userId = _userManager.GetUserId(User);
             if (string.IsNullOrEmpty(userId)) return Challenge();
 
-            var result = await _paymentService.VerifyAndProcessPaymentAsync(userId, orderId, paymentId, signature, couponCode);
-            if (result.Success)
+            try
             {
-                TempData["Message"] = result.Message;
+                var result = await _paymentService.VerifyAndProcessPaymentAsync(
+                    userId, orderId, paymentId, signature, couponCode, planId, isUpgrade, simulateFailure);
+
+                if (result.Success)
+                {
+                    TempData["Message"] = result.Message;
+                    return RedirectToAction("MySubscription", "Subscription");
+                }
+
+                TempData["Error"] = result.Message;
+                return RedirectToAction("History");
+            }
+            catch (Exception ex)
+            {
+                var detailedMsg = ex.InnerException != null ? $"{ex.Message} ({ex.InnerException.Message})" : ex.Message;
+                _logger.LogError(ex, "Exception during payment verification for Order {OrderId}, User {UserId}", orderId, userId);
+                TempData["Error"] = $"Payment processing notice: {detailedMsg}";
                 return RedirectToAction("MySubscription", "Subscription");
             }
-
-            TempData["Error"] = result.Message;
-            return RedirectToAction("History");
         }
 
         // GET: /Payment/History
-        [Authorize(Roles = "User")]
+        [Authorize]
         public async Task<IActionResult> History(PaymentStatus? status)
         {
             var userId = _userManager.GetUserId(User);

@@ -193,20 +193,39 @@
                                     </table>
                                 </div>
 
-                                <div class="alert alert-light border small mt-3">
-                                    <i class="bi bi-info-circle me-1 text-primary"></i>
-                                    <strong>Billing Note:</strong> Your current subscription period will update to <strong>@plan.Name</strong> starting immediately with full entitlements.
-                                </div>
+                                @if (isUpgrade)
+                                {
+                                    <div class="alert alert-success-subtle text-success-emphasis border border-success-subtle small mt-3">
+                                        <i class="bi bi-credit-card-2-front me-1"></i>
+                                        <strong>Upgrade Payment Required:</strong> Switching to <strong>@plan.Name</strong> will take you to the payment checkout to pay <strong>₹@plan.Price.ToString("F2")</strong> and immediately activate your new higher tier.
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-light border small mt-3">
+                                        <i class="bi bi-info-circle me-1 text-primary"></i>
+                                        <strong>Billing Note:</strong> Your current subscription period will update to <strong>@plan.Name</strong> starting immediately with full entitlements.
+                                    </div>
+                                }
                             </div>
                             <div class="modal-footer bg-light">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <form asp-action="ConfirmChangePlan" method="post" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="newPlanId" value="@plan.Id" />
-                                    <button type="submit" class="btn @(isUpgrade ? "btn-success" : "btn-warning") fw-bold px-4">
-                                        Confirm &amp; Switch to @plan.Name
-                                    </button>
-                                </form>
+                                @if (isUpgrade)
+                                {
+                                    <a asp-controller="Payment" asp-action="Checkout" asp-route-planId="@plan.Id" asp-route-isUpgrade="true" class="btn btn-success fw-bold px-4">
+                                        <i class="bi bi-credit-card me-1"></i>Proceed to Payment (₹@plan.Price.ToString("F2"))
+                                    </a>
+                                }
+                                else
+                                {
+                                    <form asp-action="ConfirmChangePlan" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="newPlanId" value="@plan.Id" />
+                                        <button type="submit" class="btn btn-warning fw-bold px-4">
+                                            Confirm Downgrade to @plan.Name
+                                        </button>
+                                    </form>
+                                }
                             </div>
                         </div>
                     </div>

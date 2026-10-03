@@ -73,9 +73,10 @@ using (var scope = app.Services.CreateScope())
     string adminEmail = "admin@subscription.com";
     string adminPassword = "Admin@123";
 
-    if(await userManager.FindByEmailAsync(adminEmail) == null)
+    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+    if(adminUser == null)
     {
-        var adminUser = new ApplicationUser
+        adminUser = new ApplicationUser
         {
             UserName = adminEmail,
             Email = adminEmail,
@@ -86,8 +87,16 @@ using (var scope = app.Services.CreateScope())
         if (result.Succeeded)
         {
             await userManager.AddToRoleAsync(adminUser, "Admin");
+            await userManager.AddToRoleAsync(adminUser, "User");
         }
-    };
+    }
+    else
+    {
+        if (!await userManager.IsInRoleAsync(adminUser, "User"))
+        {
+            await userManager.AddToRoleAsync(adminUser, "User");
+        }
+    }
 
     var dbContext = services.GetRequiredService<ApplicationDbContext>();
     await dbContext.Database.ExecuteSqlRawAsync(@"
@@ -164,6 +173,23 @@ using (var scope = app.Services.CreateScope())
                 ELSE
                     UPDATE [UserSubscriptions] SET [CurrentPeriodEnd] = DATEADD(month, 1, [StartDate]);
                 ');
+            END;
+
+            -- If ExpiryDate exists in older schema as NOT NULL, make it NULLable so EF Core entity inserts succeed
+            IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('UserSubscriptions') AND name = 'ExpiryDate' AND is_nullable = 0)
+            BEGIN
+                DECLARE @defConstraint sysname;
+                SELECT @defConstraint = d.name
+                FROM sys.default_constraints d
+                JOIN sys.columns c ON d.parent_column_id = c.column_id AND d.parent_object_id = c.object_id
+                WHERE d.parent_object_id = OBJECT_ID('UserSubscriptions') AND c.name = 'ExpiryDate';
+
+                IF @defConstraint IS NOT NULL
+                BEGIN
+                    EXEC('ALTER TABLE [UserSubscriptions] DROP CONSTRAINT [' + @defConstraint + '];');
+                END;
+
+                ALTER TABLE [UserSubscriptions] ALTER COLUMN [ExpiryDate] datetime2 NULL;
             END;
 
             IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('UserSubscriptions') AND name = 'AutoRenew')

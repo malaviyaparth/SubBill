@@ -5,7 +5,7 @@ namespace SubBill.Services
     public interface IPaymentService
     {
         Task<Payment> CreateOrderAsync(string userId, int planId, string? couponCode = null);
-        Task<PaymentResult> VerifyAndProcessPaymentAsync(string userId, string orderId, string paymentId, string signature, string? couponCode = null);
+        Task<PaymentResult> VerifyAndProcessPaymentAsync(string userId, string orderId, string paymentId, string signature, string? couponCode = null, int? planId = null, bool isUpgrade = false, bool simulateFailure = false);
         Task<List<Payment>> GetUserPaymentsAsync(string userId, PaymentStatus? status = null);
         Task<List<Payment>> GetAllPaymentsAsync(PaymentStatus? status = null);
         string GetKeyId();

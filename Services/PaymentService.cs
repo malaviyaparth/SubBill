@@ -81,7 +81,15 @@ namespace SubBill.Services
             return payment;
         }
 
-        public async Task<PaymentResult> VerifyAndProcessPaymentAsync(string userId, string orderId, string paymentId, string signature, string? couponCode = null)
+        public async Task<PaymentResult> VerifyAndProcessPaymentAsync(
+            string userId,
+            string orderId,
+            string paymentId,
+            string signature,
+            string? couponCode = null,
+            int? planId = null,
+            bool isUpgrade = false,
+            bool simulateFailure = false)
         {
             var payment = await _context.Payments
                 .FirstOrDefaultAsync(p => p.OrderId == orderId && p.UserId == userId);
@@ -91,16 +99,34 @@ namespace SubBill.Services
                 return new PaymentResult { Success = false, Message = "Order not found." };
             }
 
+            // Simulate explicit test failure for demo testing if requested
+            if (simulateFailure)
+            {
+                payment.Status = PaymentStatus.Failed;
+                payment.PaymentId = paymentId;
+                payment.Signature = signature;
+                payment.PaymentDate = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Simulated payment failure for Order {OrderId}", orderId);
+                return new PaymentResult
+                {
+                    Success = false,
+                    Message = "Demo Sandbox Payment Simulation: Transaction was declined by the simulated card issuer / bank.",
+                    Payment = payment
+                };
+            }
+
             // Idempotency: If payment was already completed successfully, return without duplicating
             if (payment.Status == PaymentStatus.Success)
             {
                 var existingSub = payment.SubscriptionId.HasValue 
-                    ? await _context.UserSubscriptions.FindAsync(payment.SubscriptionId.Value) 
+                    ? await _context.UserSubscriptions.Include(s => s.Plan).FirstOrDefaultAsync(s => s.Id == payment.SubscriptionId.Value) 
                     : null;
                 return new PaymentResult
                 {
                     Success = true,
-                    Message = "Payment already processed.",
+                    Message = "Payment has already been processed.",
                     Payment = payment,
                     Subscription = existingSub
                 };
@@ -125,9 +151,18 @@ namespace SubBill.Services
             payment.Signature = signature;
             payment.PaymentDate = DateTime.UtcNow;
 
-            // Find plan associated with this payment amount
-            var plan = await _context.SubscriptionPlans.FirstOrDefaultAsync(p => p.Price == payment.Amount && p.IsActive)
+            // Resolve plan
+            SubscriptionPlan? plan = null;
+            if (planId.HasValue && planId.Value > 0)
+            {
+                plan = await _context.SubscriptionPlans.FindAsync(planId.Value);
+            }
+
+            if (plan == null)
+            {
+                plan = await _context.SubscriptionPlans.FirstOrDefaultAsync(p => p.Price == payment.Amount && p.IsActive)
                        ?? await _context.SubscriptionPlans.FirstOrDefaultAsync();
+            }
 
             if (plan == null)
             {
@@ -135,8 +170,32 @@ namespace SubBill.Services
                 return new PaymentResult { Success = false, Message = "Unable to resolve active plan for payment.", Payment = payment };
             }
 
-            // Activate subscription
-            var subscription = await _subscriptionService.SubscribeAsync(userId, plan.Id);
+            // Activate or Upgrade subscription with resilient fallback
+            UserSubscription subscription;
+            var currentSub = await _subscriptionService.GetCurrentSubscriptionAsync(userId);
+
+            if (isUpgrade && currentSub != null && currentSub.PlanId != plan.Id)
+            {
+                try
+                {
+                    subscription = await _subscriptionService.UpgradeSubscriptionAsync(userId, plan.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "UpgradeSubscriptionAsync threw exception for User {UserId}. Falling back to SubscribeAsync for Plan {PlanId}", userId, plan.Id);
+                    subscription = await _subscriptionService.SubscribeAsync(userId, plan.Id);
+                }
+            }
+            else
+            {
+                subscription = await _subscriptionService.SubscribeAsync(userId, plan.Id);
+            }
+
+            if (subscription.Plan == null)
+            {
+                subscription.Plan = plan;
+            }
+
             payment.SubscriptionId = subscription.Id;
             await _context.SaveChangesAsync();
 
@@ -168,7 +227,9 @@ namespace SubBill.Services
             return new PaymentResult
             {
                 Success = true,
-                Message = "Payment verified and subscription activated successfully!",
+                Message = isUpgrade 
+                    ? $"Payment verified! Your subscription has been successfully upgraded to {plan.Name}." 
+                    : $"Payment verified! Your subscription to {plan.Name} is now active.",
                 Payment = payment,
                 Subscription = subscription
             };
@@ -212,8 +273,8 @@ namespace SubBill.Services
                 return false;
             }
 
-            // In sandbox test mode, allow predefined test token or HMAC-SHA256 signature
-            if (signature == "test_signature_valid" || signature == "sandbox_bypass_signature")
+            // In sandbox test mode, allow predefined test tokens or HMAC-SHA256 signature
+            if (signature == "test_signature_valid" || signature == "sandbox_bypass_signature" || signature == "demo_payment_success")
             {
                 return true;
             }

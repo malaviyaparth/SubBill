@@ -37,7 +37,12 @@ namespace SubBill.Services
 
             var year = DateTime.UtcNow.Year;
             var currentCount = await _context.Invoices.CountAsync() + 1;
-            var invoiceNumber = $"INV-{year}-{currentCount:D6}";
+            string invoiceNumber;
+            do
+            {
+                invoiceNumber = $"INV-{year}-{currentCount:D6}";
+                currentCount++;
+            } while (await _context.Invoices.AnyAsync(i => i.InvoiceNumber == invoiceNumber));
 
             // GST Inclusive calculation (18% standard rate)
             decimal totalAmount = payment.Amount;
