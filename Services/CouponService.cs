@@ -183,6 +183,19 @@ namespace SubBill.Services
                 throw new InvalidOperationException($"A coupon with code '{coupon.Code}' already exists.");
             }
 
+            // Coupon date validation: Cannot create coupon for yesterday or prior days (must be from today onwards in IST)
+            var todayIst = DateTimeExtensions.NowIst().Date;
+            var validFromIst = coupon.ValidFrom.ToIst().Date;
+            if (validFromIst < todayIst)
+            {
+                throw new InvalidOperationException("Coupon start date (Valid From) cannot be in the past (yesterday or earlier). It must be from today onwards.");
+            }
+
+            if (coupon.ValidUntil <= coupon.ValidFrom)
+            {
+                throw new InvalidOperationException("Coupon expiry date (Valid Until) must be greater than the Valid From date.");
+            }
+
             coupon.CreatedAt = DateTime.UtcNow;
             _context.Coupons.Add(coupon);
             await _context.SaveChangesAsync();

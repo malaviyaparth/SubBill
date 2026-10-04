@@ -14,15 +14,18 @@ namespace SubBill.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IPaymentService _paymentService;
+        private readonly IAuditService _auditService;
 
         public PaymentController(
             ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
-            IPaymentService paymentService)
+            IPaymentService paymentService,
+            IAuditService auditService)
         {
             _context = context;
             _userManager = userManager;
             _paymentService = paymentService;
+            _auditService = auditService;
         }
 
         // GET: /Payment/Checkout?planId=2&couponCode=SAVE20
@@ -47,14 +50,20 @@ namespace SubBill.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "User")]
-        public async Task<IActionResult> ProcessPayment(string orderId, string paymentId, string signature, string? couponCode = null)
+        public async Task<IActionResult> ProcessPayment(string orderId, string paymentId, string signature, string? couponCode = null, int? planId = null)
         {
             var userId = _userManager.GetUserId(User);
             if (string.IsNullOrEmpty(userId)) return Challenge();
 
-            var result = await _paymentService.VerifyAndProcessPaymentAsync(userId, orderId, paymentId, signature, couponCode);
+            var result = await _paymentService.VerifyAndProcessPaymentAsync(userId, orderId, paymentId, signature, couponCode, planId);
             if (result.Success)
             {
+                // Audit Log: User payment checkout subscription activation
+                var userEmail = User.Identity?.Name ?? userId;
+                var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+                await _auditService.LogAsync(userEmail, "SubscribeWithPayment", "Payment", paymentId,
+                    $"Payment successful ({paymentId}) for Order {orderId}. Subscription activated.", ip);
+
                 TempData["Message"] = result.Message;
                 return RedirectToAction("MySubscription", "Subscription");
             }

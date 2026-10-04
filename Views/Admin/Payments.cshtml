@@ -112,8 +112,8 @@
                                     }
                                 </td>
                                 <td>
-                                    <span>@pay.CreatedAt.ToString("dd MMM yyyy")</span>
-                                    <small class="text-muted d-block">@pay.CreatedAt.ToString("HH:mm") UTC</small>
+                                    <span>@pay.CreatedAt.ToIst().ToString("dd MMM yyyy")</span>
+                                    <small class="text-muted d-block">@pay.CreatedAt.ToIst().ToString("hh:mm tt") IST</small>
                                 </td>
                             </tr>
                         }

@@ -103,7 +103,7 @@
                                         @inv.Status
                                     </span>
                                 </td>
-                                <td>@inv.InvoiceDate.ToString("dd MMM yyyy")</td>
+                                <td>@inv.InvoiceDate.ToIst().ToString("dd MMM yyyy")</td>
                                 <td class="text-end">
                                     <a asp-action="DownloadInvoice" asp-route-id="@inv.Id" class="btn btn-sm btn-outline-primary" title="Download PDF Invoice">
                                         <i class="bi bi-file-earmark-pdf me-1"></i>Download

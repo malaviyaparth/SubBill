@@ -1,4 +1,4 @@
-﻿@model SubBill.Models.SubscriptionPlan
+@model SubBill.Models.SubscriptionPlan
 @*
     For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 *@
@@ -29,9 +29,10 @@
     </div>
 
     <div class="form-group mb-3">
-        <label asp-for="BillingCycle"></label>
-        <select asp-for="BillingCycle" class="form-control"
+        <label asp-for="BillingCycle" class="form-label fw-semibold">Plan Duration / Billing Cycle</label>
+        <select asp-for="BillingCycle" class="form-select"
                 asp-items="Html.GetEnumSelectList<SubBill.Models.BillingCycle>()"></select>
+        <small class="form-text text-muted">Available limits: 1 Month, 3 Months, 6 Months, or 12 Months.</small>
     </div>
 
     <div class="form-check mb-3">

@@ -66,6 +66,7 @@
                     <form id="paymentForm" asp-action="ProcessPayment" method="post">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="orderId" value="@Model.OrderId" />
+                        <input type="hidden" name="planId" value="@(plan?.Id ?? 0)" />
                         <input type="hidden" id="couponCodeHidden" name="couponCode" value="@initialCoupon" />
                         <input type="hidden" id="paymentId" name="paymentId" value="pay_test_@Guid.NewGuid().ToString("N")[..12]" />
                         <input type="hidden" id="signature" name="signature" value="test_signature_valid" />

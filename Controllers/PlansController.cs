@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SubBill.Data;
 using SubBill.Models;
+using SubBill.Services;
 
 namespace SubBill.Controllers
 {
@@ -10,10 +11,12 @@ namespace SubBill.Controllers
     public class PlansController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuditService _auditService;
 
-        public PlansController(ApplicationDbContext context)
+        public PlansController(ApplicationDbContext context, IAuditService auditService)
         {
             _context = context;
+            _auditService = auditService;
         }
 
         // GET: /Plans
@@ -42,6 +45,12 @@ namespace SubBill.Controllers
 
             _context.SubscriptionPlans.Add(plan);
             await _context.SaveChangesAsync();
+
+            // Audit Log: Plan Creation by Admin
+            var adminEmail = User.Identity?.Name ?? "Admin";
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditService.LogAsync(adminEmail, "CreatePlan", "SubscriptionPlan", plan.Id.ToString(),
+                $"Created plan '{plan.Name}' (Price: ₹{plan.Price:F2}, Duration: {plan.BillingCycle}, Active: {plan.IsActive})", ip);
 
             TempData["Message"] = "Plan created successfully.";
 
@@ -88,6 +97,12 @@ namespace SubBill.Controllers
 
             await _context.SaveChangesAsync();
 
+            // Audit Log: Plan Modification by Admin
+            var adminEmail = User.Identity?.Name ?? "Admin";
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditService.LogAsync(adminEmail, "UpdatePlan", "SubscriptionPlan", existingPlan.Id.ToString(),
+                $"Updated plan '{existingPlan.Name}' (Price: ₹{existingPlan.Price:F2}, Duration: {existingPlan.BillingCycle}, Active: {existingPlan.IsActive})", ip);
+
             TempData["Message"] = "Plan updated successfully.";
 
             return RedirectToAction(nameof(Index));
@@ -114,8 +129,15 @@ namespace SubBill.Controllers
             if (plan == null)
                 return NotFound();
 
+            var planName = plan.Name;
             _context.SubscriptionPlans.Remove(plan);
             await _context.SaveChangesAsync();
+
+            // Audit Log: Plan Deletion by Admin
+            var adminEmail = User.Identity?.Name ?? "Admin";
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditService.LogAsync(adminEmail, "DeletePlan", "SubscriptionPlan", id.ToString(),
+                $"Deleted plan '{planName}' (ID: #{id})", ip);
 
             TempData["Message"] = "Plan deleted.";
 

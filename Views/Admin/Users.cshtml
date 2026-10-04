@@ -92,7 +92,7 @@
                         {
                             <tr>
                                 <td>
-                                    <div class="fw-bold text-dark">@(string.IsNullOrWhiteSpace(user.Name) ? "No Name" : user.Name)</div>
+                                    <div class="fw-bold text-dark">@(string.IsNullOrWhiteSpace(user.Name) ? (user.Email ?? "User") : user.Name)</div>
                                     <small class="text-muted">@user.Email</small>
                                 </td>
                                 <td>

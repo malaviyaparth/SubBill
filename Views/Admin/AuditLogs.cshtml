@@ -48,7 +48,7 @@
                         @foreach (var log in Model.Items)
                         {
                             <tr>
-                                <td>@log.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC</td>
+                                <td>@log.Timestamp.ToIst().ToString("yyyy-MM-dd hh:mm:ss tt") IST</td>
                                 <td><strong>@log.AdminEmail</strong></td>
                                 <td>
                                     <span class="badge bg-primary-subtle text-primary border border-primary font-sans-serif">

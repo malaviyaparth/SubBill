@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
 namespace SubBill.Models
@@ -23,9 +23,17 @@ namespace SubBill.Models
     }
     public enum BillingCycle
     {
-        Monthly,
-        Quarterly,
-        Yearly
+        [Display(Name = "1 Month (Monthly)")]
+        Monthly = 0,
+
+        [Display(Name = "3 Months (Quarterly)")]
+        Quarterly = 1,
+
+        [Display(Name = "6 Months (Semi-Annually)")]
+        SemiAnnually = 3,
+
+        [Display(Name = "12 Months (Yearly)")]
+        Yearly = 2
     }
 
 }

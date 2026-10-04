@@ -37,6 +37,7 @@
     <Compile Include="..\Data\ApplicationDbContext.cs" Link="Data\ApplicationDbContext.cs" />
     <Compile Include="..\Services\IAuditService.cs" Link="Services\IAuditService.cs" />
     <Compile Include="..\Services\AuditService.cs" Link="Services\AuditService.cs" />
+    <Compile Include="..\Services\DateTimeExtensions.cs" Link="Services\DateTimeExtensions.cs" />
     <Compile Include="..\Services\ICouponService.cs" Link="Services\ICouponService.cs" />
     <Compile Include="..\Services\CouponService.cs" Link="Services\CouponService.cs" />
   </ItemGroup>

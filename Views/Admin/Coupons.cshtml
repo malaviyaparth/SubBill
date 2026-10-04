@@ -107,8 +107,8 @@
                                                 <span class="text-muted">/ @(c.UsageLimit.HasValue ? c.UsageLimit.Value.ToString() : "∞")</span>
                                             </td>
                                             <td>
-                                                <small class="text-muted d-block">From: @c.ValidFrom.ToString("dd MMM yyyy")</small>
-                                                <small class="text-muted d-block">Until: @c.ValidUntil.ToString("dd MMM yyyy")</small>
+                                                <small class="text-muted d-block">From: @c.ValidFrom.ToIst().ToString("dd MMM yyyy, hh:mm tt") IST</small>
+                                                <small class="text-muted d-block">Until: @c.ValidUntil.ToIst().ToString("dd MMM yyyy, hh:mm tt") IST</small>
                                             </td>
                                             <td>
                                                 @if (c.IsActive)
@@ -301,12 +301,18 @@
                     </div>
                     <div class="row g-2">
                         <div class="col-sm-6">
-                            <label class="form-label small fw-semibold">Valid From</label>
-                            <input type="datetime-local" name="ValidFrom" class="form-control" value="@DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm")" required />
+                            <label class="form-label small fw-semibold">Valid From (IST)</label>
+                            <input type="datetime-local" name="ValidFrom" class="form-control" 
+                                   value="@DateTimeExtensions.NowIst().ToString("yyyy-MM-ddTHH:mm")" 
+                                   min="@DateTimeExtensions.NowIst().ToString("yyyy-MM-ddT00:00")" required />
+                            <small class="text-muted d-block">Only today or future dates allowed.</small>
                         </div>
                         <div class="col-sm-6">
-                            <label class="form-label small fw-semibold">Valid Until</label>
-                            <input type="datetime-local" name="ValidUntil" class="form-control" value="@DateTime.UtcNow.AddMonths(1).ToString("yyyy-MM-ddTHH:mm")" required />
+                            <label class="form-label small fw-semibold">Valid Until (IST)</label>
+                            <input type="datetime-local" name="ValidUntil" class="form-control" 
+                                   value="@DateTimeExtensions.NowIst().AddMonths(1).ToString("yyyy-MM-ddTHH:mm")" 
+                                   min="@DateTimeExtensions.NowIst().ToString("yyyy-MM-ddT00:00")" required />
+                            <small class="text-muted d-block">Expiry date in IST.</small>
                         </div>
                     </div>
                 </div>

@@ -109,7 +109,8 @@ namespace SubBill.Services
                 throw new InvalidOperationException("Only active or trialing subscriptions can be cancelled.");
             }
 
-            // Subscription stays active until CurrentPeriodEnd, but AutoRenew is disabled
+            // Update status so cancellation immediately reflects on Admin Dashboard & Subscriptions list
+            sub.Status = SubscriptionStatus.Cancelled;
             sub.AutoRenew = false;
             sub.CancelledAt = DateTime.UtcNow;
             sub.CancellationReason = string.IsNullOrWhiteSpace(reason) ? "User requested cancellation" : reason.Trim();
@@ -297,15 +298,18 @@ namespace SubBill.Services
                 .ToListAsync();
         }
 
-        public DateTime CalculatePeriodEnd(DateTime startDate, BillingCycle cycle)
+                 public DateTime CalculatePeriodEnd(DateTime startDate, BillingCycle cycle)
         {
             return cycle switch
             {
                 BillingCycle.Monthly => startDate.AddMonths(1),
                 BillingCycle.Quarterly => startDate.AddMonths(3),
-                BillingCycle.Yearly => startDate.AddYears(1),
+                BillingCycle.SemiAnnually => startDate.AddMonths(6),
+                BillingCycle.Yearly => startDate.AddMonths(12),
                 _ => startDate.AddMonths(1)
             };
         }
+
+
     }
 }

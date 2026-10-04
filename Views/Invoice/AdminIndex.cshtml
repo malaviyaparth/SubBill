@@ -71,7 +71,7 @@
                                         @invoice.Status
                                     </span>
                                 </td>
-                                <td>@invoice.InvoiceDate.ToString("dd MMM yyyy")</td>
+                                <td>@invoice.InvoiceDate.ToIst().ToString("dd MMM yyyy")</td>
                                 <td class="text-end">
                                     <a asp-action="Details" asp-route-id="@invoice.Id" class="btn btn-sm btn-outline-secondary me-1">View</a>
                                     <a asp-action="Download" asp-route-id="@invoice.Id" class="btn btn-sm btn-outline-primary">PDF</a>

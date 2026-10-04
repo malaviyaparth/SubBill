@@ -34,7 +34,7 @@
     <div class="alert alert-light border d-flex justify-content-between align-items-center py-2 px-3 mb-4 rounded-3 small text-muted">
         <div>
             <i class="bi bi-info-circle me-1 text-primary"></i>
-            Showing analytics from <strong>@Model.StartDate.ToString("dd MMM yyyy")</strong> to <strong>@Model.EndDate.ToString("dd MMM yyyy")</strong>.
+            Showing analytics from <strong>@Model.StartDate.ToIst().ToString("dd MMM yyyy")</strong> to <strong>@Model.EndDate.ToIst().ToString("dd MMM yyyy") IST</strong>.
         </div>
         <div class="d-none d-md-block">
             <span>Range: <span class="badge bg-primary text-white">@Model.TimeRange.ToUpper()</span></span>
@@ -301,7 +301,12 @@
 
     <!-- Quick Navigation to Admin Modules -->
     <div class="card border-0 shadow-sm rounded-3 p-4 bg-white">
-        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-grid-3x3-gap text-secondary me-2"></i>Admin Management Shortcuts</h5>
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark mb-0"><i class="bi bi-grid-3x3-gap text-secondary me-2"></i>Admin Management Shortcuts</h5>
+            <a asp-controller="Plans" asp-action="Create" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
+                <i class="bi bi-plus-circle me-1"></i>+ Create New Plan
+            </a>
+        </div>
         <div class="row g-3">
             <div class="col-sm-6 col-md-3">
                 <a asp-controller="Plans" asp-action="Index" class="btn btn-outline-secondary w-100 text-start p-3 rounded-3">

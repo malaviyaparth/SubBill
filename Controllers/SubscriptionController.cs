@@ -14,15 +14,18 @@ namespace SubBill.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ISubscriptionService _subscriptionService;
+        private readonly IAuditService _auditService;
 
         public SubscriptionController(
             ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
-            ISubscriptionService subscriptionService)
+            ISubscriptionService subscriptionService,
+            IAuditService auditService)
         {
             _context = context;
             _userManager = userManager;
             _subscriptionService = subscriptionService;
+            _auditService = auditService;
         }
 
         // GET: /Subscription
@@ -78,7 +81,15 @@ namespace SubBill.Controllers
 
             try
             {
-                await _subscriptionService.SubscribeAsync(userId, id);
+                var newSub = await _subscriptionService.SubscribeAsync(userId, id);
+                var plan = await _context.SubscriptionPlans.FindAsync(id);
+                var userEmail = User.Identity?.Name ?? userId;
+                var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+                // Audit Log: User Subscribed to a Plan
+                await _auditService.LogAsync(userEmail, "SubscribePlan", "UserSubscription", newSub.Id.ToString(),
+                    $"User subscribed to plan '{plan?.Name}' (₹{plan?.Price:F2} / {plan?.BillingCycle})", ip);
+
                 TempData["Message"] = "Subscription activated successfully!";
             }
             catch (Exception ex)
@@ -120,7 +131,7 @@ namespace SubBill.Controllers
                 summary.DaysRemainingInPeriod = Math.Max(0, (int)Math.Ceiling(remainingDays));
                 summary.PeriodProgressPercent = Math.Clamp((int)((elapsedPeriodTime / Math.Max(1, totalPeriodTime)) * 100), 0, 100);
                 summary.DaysActive = Math.Max(0, (int)(DateTime.UtcNow - currentSub.StartDate).TotalDays);
-                summary.MemberSinceFormatted = currentSub.StartDate.ToString("dd MMM yyyy");
+                summary.MemberSinceFormatted = currentSub.StartDate.ToIst().ToString("dd MMM yyyy");
             }
 
             // Lifetime & Aggregates for user
@@ -231,6 +242,13 @@ namespace SubBill.Controllers
             try
             {
                 await _subscriptionService.ToggleAutoRenewAsync(userId, id, enable);
+                var userEmail = User.Identity?.Name ?? userId;
+                var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+                // Audit Log: Auto-Renew Toggle
+                await _auditService.LogAsync(userEmail, "ToggleAutoRenew", "UserSubscription", id.ToString(),
+                    $"User {(enable ? "enabled" : "disabled")} auto-renew for subscription #{id}", ip);
+
                 TempData["Message"] = enable ? "Auto-renew has been successfully enabled." : "Auto-renew has been disabled.";
             }
             catch (Exception ex)
@@ -253,6 +271,13 @@ namespace SubBill.Controllers
             try
             {
                 await _subscriptionService.RenewUserSubscriptionAsync(userId, id);
+                var userEmail = User.Identity?.Name ?? userId;
+                var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+                // Audit Log: Plan Renewal
+                await _auditService.LogAsync(userEmail, "RenewSubscription", "UserSubscription", id.ToString(),
+                    $"User manually renewed subscription #{id}", ip);
+
                 TempData["Message"] = "Your subscription has been successfully renewed!";
             }
             catch (Exception ex)
@@ -291,6 +316,13 @@ namespace SubBill.Controllers
             try
             {
                 await _subscriptionService.CancelSubscriptionAsync(userId, id, reason);
+                var userEmail = User.Identity?.Name ?? userId;
+                var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+                // Audit Log: Subscription Cancellation
+                await _auditService.LogAsync(userEmail, "CancelSubscription", "UserSubscription", id.ToString(),
+                    $"User cancelled subscription #{id}. Reason: {(string.IsNullOrWhiteSpace(reason) ? "No reason specified" : reason)}", ip);
+
                 TempData["Message"] = "Your subscription has been cancelled. You retain full access until the end of the current billing period.";
             }
             catch (Exception ex)
@@ -335,6 +367,13 @@ namespace SubBill.Controllers
             try
             {
                 var updated = await _subscriptionService.ChangeSubscriptionPlanAsync(userId, newPlanId);
+                var userEmail = User.Identity?.Name ?? userId;
+                var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+                // Audit Log: Plan Transition (Upgrade / Downgrade)
+                await _auditService.LogAsync(userEmail, "ChangePlan", "UserSubscription", updated.Id.ToString(),
+                    $"User changed subscription plan to '{updated.Plan?.Name}' (₹{updated.Plan?.Price:F2} / {updated.Plan?.BillingCycle})", ip);
+
                 TempData["Message"] = $"Your subscription plan has been successfully changed to {updated.Plan?.Name}!";
             }
             catch (Exception ex)

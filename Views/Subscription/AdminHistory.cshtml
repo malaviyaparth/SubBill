@@ -51,7 +51,7 @@
                                         <span class="badge bg-warning text-dark">Downgrade</span>
                                     }
                                 </td>
-                                <td>@history.ChangedAt.ToString("dd MMM yyyy HH:mm:ss") UTC</td>
+                                <td>@history.ChangedAt.ToIst().ToString("dd MMM yyyy, hh:mm:ss tt") IST</td>
                             </tr>
                         }
                     </tbody>

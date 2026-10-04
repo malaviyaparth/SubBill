@@ -29,11 +29,13 @@
         <span asp-validation-for="Price" class="text-danger"></span>
     </div>
 
-    <div class="form-group mb-3">
-        <label asp-for="BillingCycle"></label>
-        <select asp-for="BillingCycle" class="form-control"
+     <div class="form-group mb-3">
+        <label asp-for="BillingCycle" class="form-label fw-semibold">Plan Duration / Billing Cycle</label>
+        <select asp-for="BillingCycle" class="form-select"
                 asp-items="Html.GetEnumSelectList<SubBill.Models.BillingCycle>()"></select>
+        <small class="form-text text-muted">Available limits: 1 Month, 3 Months, 6 Months, or 12 Months.</small>
     </div>
+
 
     <div class="form-check mb-3">
         <input asp-for="IsActive" class="form-check-input" />

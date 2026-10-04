@@ -61,7 +61,7 @@ namespace SubBill.Services
                 }
             }
 
-            var orderId = $"order_test_{DateTime.UtcNow:yyyyMMddHHmmss}_{Random.Shared.Next(1000, 9999)}";
+            var orderId = $"order_plan_{planId}_{DateTime.UtcNow:yyyyMMddHHmmss}_{Random.Shared.Next(1000, 9999)}";
 
             var payment = new Payment
             {
@@ -77,11 +77,11 @@ namespace SubBill.Services
             _context.Payments.Add(payment);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Created test payment order {OrderId} for User {UserId}, Amount {Amount}", orderId, userId, payableAmount);
+            _logger.LogInformation("Created test payment order {OrderId} for User {UserId}, Plan {PlanId}, Amount {Amount}", orderId, userId, planId, payableAmount);
             return payment;
         }
 
-        public async Task<PaymentResult> VerifyAndProcessPaymentAsync(string userId, string orderId, string paymentId, string signature, string? couponCode = null)
+        public async Task<PaymentResult> VerifyAndProcessPaymentAsync(string userId, string orderId, string paymentId, string signature, string? couponCode = null, int? planId = null)
         {
             var payment = await _context.Payments
                 .FirstOrDefaultAsync(p => p.OrderId == orderId && p.UserId == userId);
@@ -125,9 +125,31 @@ namespace SubBill.Services
             payment.Signature = signature;
             payment.PaymentDate = DateTime.UtcNow;
 
-            // Find plan associated with this payment amount
-            var plan = await _context.SubscriptionPlans.FirstOrDefaultAsync(p => p.Price == payment.Amount && p.IsActive)
-                       ?? await _context.SubscriptionPlans.FirstOrDefaultAsync();
+            // Resolve plan strictly by PlanId (NOT by discounted payment amount, avoiding wrong plan assignment when coupon is applied)
+            SubscriptionPlan? plan = null;
+
+            // 1. Try to extract planId from OrderId (order_plan_{planId}_...)
+            if (payment.OrderId.StartsWith("order_plan_"))
+            {
+                var parts = payment.OrderId.Split('_');
+                if (parts.Length >= 3 && int.TryParse(parts[2], out int extractedPlanId))
+                {
+                    plan = await _context.SubscriptionPlans.FindAsync(extractedPlanId);
+                }
+            }
+
+            // 2. If not found, use explicitly passed planId
+            if (plan == null && planId.HasValue && planId.Value > 0)
+            {
+                plan = await _context.SubscriptionPlans.FindAsync(planId.Value);
+            }
+
+            // 3. Fallback: match by price or first plan
+            if (plan == null)
+            {
+                plan = await _context.SubscriptionPlans.FirstOrDefaultAsync(p => p.Price == payment.Amount && p.IsActive)
+                           ?? await _context.SubscriptionPlans.FirstOrDefaultAsync();
+            }
 
             if (plan == null)
             {
