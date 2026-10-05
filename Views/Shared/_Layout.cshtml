@@ -14,17 +14,17 @@
     <header class="sticky-top">
         <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm py-2">
             <div class="container-fluid px-lg-4">
-                @if (User.Identity != null && User.Identity.IsAuthenticated){
-                    @if (User.IsInRole("User")){
-                        <a class="navbar-brand fw-bold text-primary d-flex align-items-center fs-4" asp-area="" asp-controller="Subscription" asp-action="Index">
-                            <i class="bi bi-wallet2 text-primary me-2 fs-3"></i>
-                            <span>SubBill Dashboard</span>
-                        </a>
-                    }
-                    else{
+                @if (User.Identity != null && User.Identity.IsAuthenticated){       
+                    @if (User.IsInRole("Admin"))
+                    {
                         <a class="navbar-brand fw-bold text-primary d-flex align-items-center fs-4" asp-area="" asp-controller="Admin" asp-action="Index">
                             <i class="bi bi-person-badge text-primary me-2 fs-3"></i>
                             <span>SubBill Admin</span>
+                        </a>
+                    }else{
+                        <a class="navbar-brand fw-bold text-primary d-flex align-items-center fs-4" asp-area="" asp-controller="Subscription" asp-action="Index">
+                            <i class="bi bi-wallet2 text-primary me-2 fs-3"></i>
+                            <span>SubBill Dashboard</span>
                         </a>
                     }
                 }else{
@@ -43,11 +43,6 @@
                         {
                             @if (User.IsInRole("Admin"))
                             {
-                                <li class="nav-item">
-                                    <a class="nav-link text-primary fw-semibold" asp-area="" asp-controller="Admin" asp-action="Index">
-                                        <i class="bi bi-speedometer2 me-1"></i>Dashboard
-                                    </a>
-                                </li>
                                 <li class="nav-item">
                                     <a class="nav-link text-dark fw-medium" asp-area="" asp-controller="Admin" asp-action="Users">Users</a>
                                 </li>

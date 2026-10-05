@@ -4,69 +4,266 @@
     ViewData["Title"] = "Register";
 }
 
-<h1>@ViewData["Title"]</h1>
-
-<div class="row">
-    <div class="col-md-4">
-        <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post">
-            <h2>Create a new account.</h2>
-            <hr />
-            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-            <div class="form-floating mb-3">
-                <input asp-for="Input.FullName" class="form-control" autocomplete="name" aria-required="true" placeholder="John Doe" />
-                <label asp-for="Input.FullName">Full Name</label>
-                <span asp-validation-for="Input.FullName" class="text-danger"></span>
-            </div>
-            <div class="form-floating mb-3">
-                <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label asp-for="Input.Email">Email</label>
-                <span asp-validation-for="Input.Email" class="text-danger"></span>
-            </div>
-            <div class="form-floating mb-3">
-                <input asp-for="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label asp-for="Input.Password">Password</label>
-                <span asp-validation-for="Input.Password" class="text-danger"></span>
-            </div>
-            <div class="form-floating mb-3">
-                <input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label asp-for="Input.ConfirmPassword">Confirm Password</label>
-                <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
-            </div>
-            <button id="registerSubmit" type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
-        </form>
-    </div>
-    <div class="col-md-6 col-md-offset-2">
-        <section>
-            <h3>Use another service to register.</h3>
-            <hr />
-            @{
-                if ((Model.ExternalLogins?.Count ?? 0) == 0)
-                {
-                    <div>
-                        <p>
-                            There are no external authentication services configured. See this <a href="https://go.microsoft.com/fwlink/?LinkID=532715">article
-                            about setting up this ASP.NET application to support logging in via external services</a>.
-                        </p>
-                    </div>
-                }
-                else
-                {
-                    <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="form-horizontal">
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-11 col-xl-10">
+            <div class="card auth-card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="row g-0">
+                    <!-- Left Brand / Feature Showcase Column (Desktop) -->
+                    <div class="col-lg-5 auth-sidebar p-4 p-xl-5 text-white d-none d-lg-flex flex-column justify-content-between position-relative">
                         <div>
-                            <p>
-                                @foreach (var provider in Model.ExternalLogins!)
-                                {
-                                    <button type="submit" class="btn btn-primary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>
-                                }
-                            </p>
+                            <a asp-area="" asp-controller="Home" asp-action="Index" class="d-inline-flex align-items-center text-decoration-none text-white mb-4">
+                                <div class="bg-white bg-opacity-20 p-2 rounded-3 me-2 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                                    <i class="bi bi-wallet2 text-white fs-4"></i>
+                                </div>
+                                <span class="fs-4 fw-bold tracking-tight">SubBill</span>
+                            </a>
+
+                            <div class="mb-4">
+                                <span class="badge bg-white bg-opacity-20 text-white rounded-pill px-3 py-1 small fw-semibold mb-3">
+                                    <i class="bi bi-rocket-takeoff me-1"></i>Get Started Free
+                                </span>
+                                <h3 class="fw-bold mb-2">Join the Modern Billing Revolution</h3>
+                                <p class="text-white text-opacity-75 small">
+                                    Set up your account in under 30 seconds to access flexible subscription plans, trial features, and automated tax invoicing.
+                                </p>
+                            </div>
+
+                            <div class="d-flex flex-column gap-3 mb-4">
+                                <div class="auth-feature-pill d-flex align-items-center">
+                                    <div class="bg-info bg-opacity-20 text-info rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                                        <i class="bi bi-gift fs-5"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold small">14-Day Free Trials</div>
+                                        <div class="text-white text-opacity-75" style="font-size: 0.76rem;">Test premium plans with zero upfront payment required</div>
+                                    </div>
+                                </div>
+
+                                <div class="auth-feature-pill d-flex align-items-center">
+                                    <div class="bg-success bg-opacity-20 text-success rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                                        <i class="bi bi-file-earmark-check fs-5"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold small">Instant Tax Invoices</div>
+                                        <div class="text-white text-opacity-75" style="font-size: 0.76rem;">Download compliant QuestPDF invoices instantly</div>
+                                    </div>
+                                </div>
+
+                                <div class="auth-feature-pill d-flex align-items-center">
+                                    <div class="bg-warning bg-opacity-20 text-warning rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                                        <i class="bi bi-ticket-perforated fs-5"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold small">Exclusive Coupon Codes</div>
+                                        <div class="text-white text-opacity-75" style="font-size: 0.76rem;">Redeem promotional discounts on checkout</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </form>
-                }
-            }
-        </section>
+
+                        <div class="pt-3 border-top border-white border-opacity-10 d-flex align-items-center text-white text-opacity-75 small">
+                            <i class="bi bi-check-circle-fill text-success me-2 fs-5"></i>
+                            <span>No Credit Card Required for Free Trial &bull; Cancel Anytime</span>
+                        </div>
+                    </div>
+
+                    <!-- Right Form Column -->
+                    <div class="col-lg-7 p-4 p-md-5 bg-white d-flex flex-column justify-content-center">
+                        <!-- Mobile Brand Header -->
+                        <div class="d-lg-none text-center mb-4">
+                            <a asp-area="" asp-controller="Home" asp-action="Index" class="d-inline-flex align-items-center text-decoration-none text-primary">
+                                <i class="bi bi-wallet2 fs-2 me-2"></i>
+                                <span class="fs-3 fw-bold">SubBill</span>
+                            </a>
+                        </div>
+
+                        <div class="mb-4">
+                            <h2 class="fw-bold text-dark mb-1">Create an Account</h2>
+                            <p class="text-muted small mb-0">Join SubBill to choose a plan and start managing subscriptions.</p>
+                        </div>
+
+                        <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+                            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 px-3 rounded-3 small mb-3" role="alert"></div>
+
+                            <!-- Full Name Field -->
+                            <div class="mb-3">
+                                <label asp-for="Input.FullName" class="form-label small fw-semibold text-dark mb-1">Full Name</label>
+                                <div class="input-group auth-input-group">
+                                    <span class="input-group-text border-end-0"><i class="bi bi-person"></i></span>
+                                    <input asp-for="Input.FullName" class="form-control border-start-0" placeholder="e.g. Parth Patel" autocomplete="name" aria-required="true" />
+                                </div>
+                                <span asp-validation-for="Input.FullName" class="text-danger small mt-1 d-block"></span>
+                            </div>
+
+                            <!-- Email Field -->
+                            <div class="mb-3">
+                                <label asp-for="Input.Email" class="form-label small fw-semibold text-dark mb-1">Email Address</label>
+                                <div class="input-group auth-input-group">
+                                    <span class="input-group-text border-end-0"><i class="bi bi-envelope"></i></span>
+                                    <input asp-for="Input.Email" class="form-control border-start-0" placeholder="name@company.com" autocomplete="username" aria-required="true" />
+                                </div>
+                                <span asp-validation-for="Input.Email" class="text-danger small mt-1 d-block"></span>
+                            </div>
+
+                            <!-- Password Field -->
+                            <div class="mb-3">
+                                <label asp-for="Input.Password" class="form-label small fw-semibold text-dark mb-1">Password</label>
+                                <div class="input-group auth-input-group">
+                                    <span class="input-group-text border-end-0"><i class="bi bi-lock"></i></span>
+                                    <input asp-for="Input.Password" id="passwordInput" type="password" class="form-control border-start-0 border-end-0" placeholder="Create a strong password" autocomplete="new-password" aria-required="true" />
+                                    <button type="button" class="btn toggle-password-btn border-start-0" onclick="togglePasswordVisibility('passwordInput', 'togglePasswordIcon')" title="Toggle password visibility">
+                                        <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="Input.Password" class="text-danger small mt-1 d-block"></span>
+
+                                <!-- Real-time requirements guide -->
+                                <div class="mt-2 p-2 bg-light rounded-3" style="font-size: 0.78rem;">
+                                    <div id="req-length" class="text-muted password-requirement-item d-flex align-items-center mb-1">
+                                        <i class="bi bi-circle me-1" id="icon-length"></i> Minimum 6 characters
+                                    </div>
+                                    <div id="req-num" class="text-muted password-requirement-item d-flex align-items-center">
+                                        <i class="bi bi-circle me-1" id="icon-num"></i> Contains at least one number
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Confirm Password Field -->
+                            <div class="mb-3">
+                                <label asp-for="Input.ConfirmPassword" class="form-label small fw-semibold text-dark mb-1">Confirm Password</label>
+                                <div class="input-group auth-input-group">
+                                    <span class="input-group-text border-end-0"><i class="bi bi-shield-lock"></i></span>
+                                    <input asp-for="Input.ConfirmPassword" id="confirmPasswordInput" type="password" class="form-control border-start-0 border-end-0" placeholder="Re-enter your password" autocomplete="new-password" aria-required="true" />
+                                    <button type="button" class="btn toggle-password-btn border-start-0" onclick="togglePasswordVisibility('confirmPasswordInput', 'toggleConfirmPasswordIcon')" title="Toggle password visibility">
+                                        <i class="bi bi-eye" id="toggleConfirmPasswordIcon"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="Input.ConfirmPassword" class="text-danger small mt-1 d-block"></span>
+                                <div id="match-indicator" class="small mt-1"></div>
+                            </div>
+
+                            <!-- Terms Notice -->
+                            <p class="text-muted small mb-4" style="font-size: 0.78rem;">
+                                By signing up, you agree to SubBill's
+                                <a asp-area="" asp-controller="Home" asp-action="Privacy" class="text-primary text-decoration-none">Privacy Policy</a>
+                                and terms of service.
+                            </p>
+
+                            <!-- Submit Button -->
+                            <button id="registerSubmit" type="submit" class="btn btn-primary w-100 auth-submit-btn shadow-sm mb-3">
+                                <i class="bi bi-person-plus-fill me-2"></i>Create My Account
+                            </button>
+
+                            <!-- External Logins (if configured) -->
+                            @{
+                                if ((Model.ExternalLogins?.Count ?? 0) > 0)
+                                {
+                                    <div class="position-relative my-4 text-center">
+                                        <hr class="text-muted opacity-25" />
+                                        <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted small">or continue with</span>
+                                    </div>
+                                    <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="d-grid gap-2">
+                                        @foreach (var provider in Model.ExternalLogins!)
+                                        {
+                                            <button type="submit" class="btn btn-outline-secondary w-100 py-2 rounded-3" name="provider" value="@provider.Name" title="Register using your @provider.DisplayName account">
+                                                @provider.DisplayName
+                                            </button>
+                                        }
+                                    </form>
+                                }
+                            }
+
+                            <!-- Switch to Login -->
+                            <div class="text-center pt-3 border-top mt-3 text-muted small">
+                                Already have an account?
+                                <a asp-page="./Login" asp-route-returnUrl="@Model.ReturnUrl" class="text-primary fw-bold text-decoration-none ms-1">
+                                    Log in
+                                </a>
+                            </div>
+
+                            <!-- Back to Home -->
+                            <div class="text-center mt-3">
+                                <a asp-area="" asp-controller="Home" asp-action="Index" class="text-secondary small text-decoration-none">
+                                    <i class="bi bi-arrow-left me-1"></i>Back to Homepage
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        function togglePasswordVisibility(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (!input || !icon) return;
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        }
+
+        const passwordInput = document.getElementById('passwordInput');
+        const confirmPasswordInput = document.getElementById('confirmPasswordInput');
+        const reqLength = document.getElementById('req-length');
+        const iconLength = document.getElementById('icon-length');
+        const reqNum = document.getElementById('req-num');
+        const iconNum = document.getElementById('icon-num');
+        const matchIndicator = document.getElementById('match-indicator');
+
+        function updatePasswordRequirements() {
+            const val = passwordInput ? passwordInput.value : '';
+            const confirmVal = confirmPasswordInput ? confirmPasswordInput.value : '';
+
+            // Check Length
+            if (val.length >= 6) {
+                reqLength.className = 'text-success password-requirement-item d-flex align-items-center mb-1';
+                iconLength.className = 'bi bi-check-circle-fill text-success me-1';
+            } else {
+                reqLength.className = 'text-muted password-requirement-item d-flex align-items-center mb-1';
+                iconLength.className = 'bi bi-circle text-muted me-1';
+            }
+
+            // Check Number
+            if (/\d/.test(val)) {
+                reqNum.className = 'text-success password-requirement-item d-flex align-items-center';
+                iconNum.className = 'bi bi-check-circle-fill text-success me-1';
+            } else {
+                reqNum.className = 'text-muted password-requirement-item d-flex align-items-center';
+                iconNum.className = 'bi bi-circle text-muted me-1';
+            }
+
+            // Check Match
+            if (confirmVal.length > 0) {
+                if (val === confirmVal) {
+                    matchIndicator.className = 'text-success small mt-1 d-flex align-items-center';
+                    matchIndicator.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i> Passwords match';
+                } else {
+                    matchIndicator.className = 'text-danger small mt-1 d-flex align-items-center';
+                    matchIndicator.innerHTML = '<i class="bi bi-exclamation-circle-fill text-danger me-1"></i> Passwords do not match';
+                }
+            } else {
+                matchIndicator.innerHTML = '';
+            }
+        }
+
+        if (passwordInput) {
+            passwordInput.addEventListener('input', updatePasswordRequirements);
+        }
+        if (confirmPasswordInput) {
+            confirmPasswordInput.addEventListener('input', updatePasswordRequirements);
+        }
+    </script>
 }

@@ -8,7 +8,11 @@ html {
   }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
   box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
@@ -21,11 +25,150 @@ body {
   margin-bottom: 60px;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+.form-floating>.form-control-plaintext::placeholder,
+.form-floating>.form-control::placeholder {
   color: var(--bs-secondary-color);
   text-align: end;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+.form-floating>.form-control-plaintext:focus::placeholder,
+.form-floating>.form-control:focus::placeholder {
   text-align: start;
+}
+
+/* ==========================================================================
+   SubBill Modern Authentication & Form Styles
+   ========================================================================== */
+.auth-page-wrapper {
+  min-height: calc(100vh - 180px);
+  display: flex;
+  align-items: center;
+}
+
+.auth-card {
+  border-radius: 1.25rem !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  box-shadow: 0 20px 45px -15px rgba(15, 23, 42, 0.12), 0 0 25px 0 rgba(0, 0, 0, 0.03) !important;
+  overflow: hidden;
+}
+
+.auth-sidebar {
+  background: linear-gradient(150deg, #0f172a 0%, #1e293b 55%, #1d4ed8 135%);
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-sidebar::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.auth-sidebar::after {
+  content: '';
+  position: absolute;
+  bottom: -80px;
+  left: -80px;
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.auth-feature-pill {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.auth-feature-pill:hover {
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-2px);
+}
+
+.auth-input-group .form-control {
+  border-color: #cbd5e1;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.auth-input-group .form-control:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.auth-input-group .input-group-text {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #64748b;
+  padding: 0.65rem 0.9rem;
+}
+
+.auth-input-group .toggle-password-btn {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #64748b;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.auth-input-group .toggle-password-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.demo-account-box {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+}
+
+.demo-chip-btn {
+  border-radius: 2rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.85rem;
+  transition: all 0.15s ease-in-out;
+}
+
+.demo-chip-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+}
+
+.demo-chip-btn:active {
+  transform: translateY(0);
+}
+
+.password-requirement-item {
+  font-size: 0.8rem;
+  transition: color 0.2s ease;
+}
+
+.auth-submit-btn {
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.auth-submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px -3px rgba(13, 110, 253, 0.35);
+}
+
+.auth-submit-btn:active {
+  transform: translateY(0);
 }
