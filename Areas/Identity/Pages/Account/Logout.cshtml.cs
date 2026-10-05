@@ -13,6 +13,7 @@ using SubBill.Models;
 
 namespace SubBill.Areas.Identity.Pages.Account
 {
+    [AllowAnonymous]
     public class LogoutModel : PageModel
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
@@ -22,6 +23,13 @@ namespace SubBill.Areas.Identity.Pages.Account
         {
             _signInManager = signInManager;
             _logger = logger;
+        }
+
+        public async Task<IActionResult> OnGet(string returnUrl = null)
+        {
+            await _signInManager.SignOutAsync();
+            _logger.LogInformation("User logged out.");
+            return LocalRedirect(returnUrl ?? "~/");
         }
 
         public async Task<IActionResult> OnPost(string returnUrl = null)
