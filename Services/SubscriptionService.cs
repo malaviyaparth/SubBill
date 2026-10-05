@@ -17,6 +17,7 @@ namespace SubBill.Services
         {
             var sub = await _context.UserSubscriptions
                 .Include(s => s.Plan)
+                    .ThenInclude(p => p!.Features)
                 .Include(s => s.User)
                 .Where(s => s.UserId == userId && (s.Status == SubscriptionStatus.Active || s.Status == SubscriptionStatus.Trialing))
                 .OrderByDescending(s => s.StartDate)
@@ -24,8 +25,19 @@ namespace SubBill.Services
 
             if (sub != null)
             {
-                // Check if current period has ended
-                if (DateTime.UtcNow > sub.CurrentPeriodEnd)
+                if (sub.Status == SubscriptionStatus.Trialing)
+                {
+                    // If trial period has ended, mark as Expired
+                    if (sub.TrialEndDate.HasValue && DateTime.UtcNow > sub.TrialEndDate.Value)
+                    {
+                        sub.Status = SubscriptionStatus.Expired;
+                        sub.AutoRenew = false;
+                        sub.UpdatedAt = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                        return null;
+                    }
+                }
+                else if (DateTime.UtcNow > sub.CurrentPeriodEnd)
                 {
                     if (sub.AutoRenew)
                     {
@@ -274,6 +286,171 @@ namespace SubBill.Services
 
             await _context.SaveChangesAsync();
             return currentSub;
+        }
+
+        public async Task<UserSubscription> UpgradeSubscriptionAsync(string userId, int newPlanId)
+        {
+            var currentSub = await GetCurrentSubscriptionAsync(userId);
+            if (currentSub == null)
+            {
+                throw new InvalidOperationException("You must have an active subscription to upgrade.");
+            }
+
+            var newPlan = await _context.SubscriptionPlans.FindAsync(newPlanId);
+            if (newPlan == null || !newPlan.IsActive)
+            {
+                throw new InvalidOperationException("Target subscription plan is invalid or inactive.");
+            }
+
+            var currentPrice = currentSub.Plan?.Price ?? 0;
+            if (newPlan.Price <= currentPrice)
+            {
+                throw new InvalidOperationException($"'{newPlan.Name}' is not an upgrade. Price must be higher than your current plan.");
+            }
+
+            return await ChangeSubscriptionPlanAsync(userId, newPlanId);
+        }
+
+        public async Task<UserSubscription> DowngradeSubscriptionAsync(string userId, int newPlanId)
+        {
+            var currentSub = await GetCurrentSubscriptionAsync(userId);
+            if (currentSub == null)
+            {
+                throw new InvalidOperationException("You must have an active subscription to downgrade.");
+            }
+
+            var newPlan = await _context.SubscriptionPlans.FindAsync(newPlanId);
+            if (newPlan == null || !newPlan.IsActive)
+            {
+                throw new InvalidOperationException("Target subscription plan is invalid or inactive.");
+            }
+
+            var currentPrice = currentSub.Plan?.Price ?? 0;
+            if (newPlan.Price >= currentPrice)
+            {
+                throw new InvalidOperationException($"'{newPlan.Name}' is not a downgrade. Price must be lower than your current plan.");
+            }
+
+            return await ChangeSubscriptionPlanAsync(userId, newPlanId);
+        }
+
+        public async Task<bool> CanUserTakeTrialAsync(string userId, int planId)
+        {
+            var plan = await _context.SubscriptionPlans.FindAsync(planId);
+            if (plan == null || !plan.IsActive || plan.TrialDays <= 0)
+            {
+                return false;
+            }
+
+            // Check if user currently has an active paid subscription
+            var hasActivePaid = await _context.UserSubscriptions
+                .AnyAsync(s => s.UserId == userId && s.Status == SubscriptionStatus.Active);
+            if (hasActivePaid)
+            {
+                return false;
+            }
+
+            // Abuse prevention: Check if user has already utilized a free trial on the platform or this plan
+            var alreadyUsedTrial = await _context.UserSubscriptions
+                .AnyAsync(s => s.UserId == userId && (s.HasUsedTrial || s.Status == SubscriptionStatus.Trialing || s.TrialStartDate != null));
+
+            return !alreadyUsedTrial;
+        }
+
+        public async Task<UserSubscription> StartFreeTrialAsync(string userId, int planId)
+        {
+            var plan = await _context.SubscriptionPlans.FindAsync(planId);
+            if (plan == null || !plan.IsActive)
+            {
+                throw new InvalidOperationException("Selected subscription plan is invalid or inactive.");
+            }
+
+            if (plan.TrialDays <= 0)
+            {
+                throw new InvalidOperationException($"The '{plan.Name}' plan does not offer a free trial.");
+            }
+
+            var isCurrentlyActive = await _context.UserSubscriptions
+                .AnyAsync(s => s.UserId == userId && s.PlanId == planId && s.Status == SubscriptionStatus.Active);
+            if (isCurrentlyActive)
+            {
+                throw new InvalidOperationException($"You already have an active subscription to the '{plan.Name}' plan.");
+            }
+
+            var isCurrentlyTrialing = await _context.UserSubscriptions
+                .AnyAsync(s => s.UserId == userId && s.Status == SubscriptionStatus.Trialing && s.TrialEndDate > DateTime.UtcNow);
+            if (isCurrentlyTrialing)
+            {
+                throw new InvalidOperationException("You already have an active free trial in progress. You can upgrade to a paid plan anytime.");
+            }
+
+            var alreadyUsedTrial = await _context.UserSubscriptions
+                .AnyAsync(s => s.UserId == userId && (s.HasUsedTrial || s.TrialStartDate != null));
+            if (alreadyUsedTrial)
+            {
+                throw new InvalidOperationException("You have already redeemed a free trial on this platform. Free trials are limited to one per account.");
+            }
+
+            // Clean up any existing records
+            var existingSubs = await _context.UserSubscriptions
+                .Where(s => s.UserId == userId && (s.Status == SubscriptionStatus.Active || s.Status == SubscriptionStatus.Trialing))
+                .ToListAsync();
+
+            foreach (var existing in existingSubs)
+            {
+                existing.Status = SubscriptionStatus.Cancelled;
+                existing.AutoRenew = false;
+                existing.CancelledAt = DateTime.UtcNow;
+                existing.CancellationReason = "Cancelled to start trial";
+                existing.UpdatedAt = DateTime.UtcNow;
+            }
+
+            var now = DateTime.UtcNow;
+            var trialEnd = now.AddDays(plan.TrialDays);
+
+            var trialSub = new UserSubscription
+            {
+                UserId = userId,
+                PlanId = plan.Id,
+                StartDate = now,
+                CurrentPeriodStart = now,
+                CurrentPeriodEnd = trialEnd,
+                TrialStartDate = now,
+                TrialEndDate = trialEnd,
+                HasUsedTrial = true,
+                Status = SubscriptionStatus.Trialing,
+                AutoRenew = false, // Do not charge during trial unless explicitly configured/paid
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            _context.UserSubscriptions.Add(trialSub);
+            await _context.SaveChangesAsync();
+
+            trialSub.Plan = plan;
+            return trialSub;
+        }
+
+        public async Task<int> ProcessExpiredTrialsAsync()
+        {
+            var now = DateTime.UtcNow;
+            var expiredTrials = await _context.UserSubscriptions
+                .Where(s => s.Status == SubscriptionStatus.Trialing && s.TrialEndDate.HasValue && s.TrialEndDate.Value <= now)
+                .ToListAsync();
+
+            foreach (var sub in expiredTrials)
+            {
+                sub.Status = SubscriptionStatus.Expired;
+                sub.AutoRenew = false;
+                sub.UpdatedAt = now;
+            }
+
+            if (expiredTrials.Count > 0)
+            {
+                await _context.SaveChangesAsync();
+            }
+
+            return expiredTrials.Count;
         }
 
         public async Task<List<SubscriptionHistory>> GetUserSubscriptionHistoryAsync(string userId)

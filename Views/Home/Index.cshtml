@@ -1,8 +1,131 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "SubBill — Modern Subscription & Billing Platform";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="py-5 bg-white border-bottom shadow-sm">
+    <div class="container py-lg-4 text-center">
+        <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill fw-semibold mb-3">
+            <i class="bi bi-stars me-1"></i>All 10 Phases Integrated &bull; ASP.NET Core 10
+        </span>
+        <h1 class="display-4 fw-extrabold text-dark tracking-tight mb-3">
+            The Complete Subscription &amp; Billing Engine for Modern SaaS
+        </h1>
+        <p class="lead text-muted col-lg-8 mx-auto mb-4">
+            Manage plans, tiered capabilities, simulated payments, automated GST invoices, promotional coupons, free trials, and customer lifecycles seamlessly.
+        </p>
+
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+            <a asp-controller="Subscription" asp-action="Index" class="btn btn-primary btn-lg px-4 py-3 fw-bold rounded-3 shadow-sm">
+                <i class="bi bi-box-seam me-2"></i>Explore Plans &amp; Pricing
+            </a>
+            @if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                @if (User.IsInRole("Admin"))
+                {
+                    <a asp-controller="Admin" asp-action="Index" class="btn btn-outline-dark btn-lg px-4 py-3 fw-bold rounded-3">
+                        <i class="bi bi-speedometer2 me-2"></i>Admin Dashboard
+                    </a>
+                }
+                else
+                {
+                    <a asp-controller="Subscription" asp-action="MySubscription" class="btn btn-outline-dark btn-lg px-4 py-3 fw-bold rounded-3">
+                        <i class="bi bi-wallet2 me-2"></i>My Billing Dashboard
+                    </a>
+                }
+            }
+            else
+            {
+                <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-outline-secondary btn-lg px-4 py-3 fw-bold rounded-3">
+                    <i class="bi bi-person-plus me-2"></i>Create Account
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h2 class="fw-bold text-dark mb-2">Engineered for Scale and Simplicity</h2>
+        <p class="text-muted">A comprehensive, end-to-end billing stack built specifically for two-person teams and growing SaaS companies.</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Feature 1 -->
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4 p-4">
+                <div class="rounded-circle bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
+                    <i class="bi bi-arrow-repeat fs-4"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2">Robust Subscription Lifecycle</h5>
+                <p class="text-muted small mb-0">
+                    Supports Trialing, Active, PastDue, Cancelled, and Expired states. Grace periods, auto-renew toggles, and zero accidental deletions.
+                </p>
+            </div>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4 p-4">
+                <div class="rounded-circle bg-success-subtle text-success d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
+                    <i class="bi bi-list-check fs-4"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2">Granular Plan Features</h5>
+                <p class="text-muted small mb-0">
+                    Define and manage feature entitlements per plan. Clear limits, project quotas, user seats, and real-time comparison tables for upgrades.
+                </p>
+            </div>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4 p-4">
+                <div class="rounded-circle bg-info-subtle text-info-emphasis d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
+                    <i class="bi bi-gift fs-4"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2">Zero-Risk Free Trials</h5>
+                <p class="text-muted small mb-0">
+                    Configurable trial durations per plan with background automated expiration processing and abuse prevention checks.
+                </p>
+            </div>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4 p-4">
+                <div class="rounded-circle bg-warning-subtle text-warning-emphasis d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
+                    <i class="bi bi-credit-card-2-front fs-4"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2">Razorpay Gateway Integration</h5>
+                <p class="text-muted small mb-0">
+                    Secure sandbox test gateway with HMAC-SHA256 signature verification, server-side idempotency, and tamper-proof payment processing.
+                </p>
+            </div>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4 p-4">
+                <div class="rounded-circle bg-danger-subtle text-danger d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
+                    <i class="bi bi-file-earmark-pdf fs-4"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2">Automated GST PDF Invoices</h5>
+                <p class="text-muted small mb-0">
+                    Generates compliant QuestPDF tax invoices upon verified payment. Instant viewing and single-click PDF downloads for customers and admin.
+                </p>
+            </div>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4 p-4">
+                <div class="rounded-circle bg-secondary-subtle text-dark d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
+                    <i class="bi bi-ticket-perforated fs-4"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2">Coupons &amp; Admin Analytics</h5>
+                <p class="text-muted small mb-0">
+                    Percentage or flat discounts, usage caps, real-time checkout discounts, and an executive admin analytics suite with Chart.js.
+                </p>
+            </div>
+        </div>
+    </div>
 </div>

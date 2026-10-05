@@ -19,7 +19,13 @@ namespace SubBill.Models
 
         public BillingCycle BillingCycle { get; set; } = BillingCycle.Monthly;
 
+        [Range(0, 365, ErrorMessage = "Trial days must be between 0 and 365.")]
+        [Display(Name = "Free Trial Days")]
+        public int TrialDays { get; set; } = 0;
+
         public bool IsActive { get; set; } = true;
+
+        public ICollection<PlanFeature> Features { get; set; } = new List<PlanFeature>();
     }
     public enum BillingCycle
     {
@@ -35,5 +41,4 @@ namespace SubBill.Models
         [Display(Name = "12 Months (Yearly)")]
         Yearly = 2
     }
-
 }

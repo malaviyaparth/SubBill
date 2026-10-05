@@ -1,69 +1,167 @@
 @model List<SubBill.Models.SubscriptionPlan>
 @{
-    ViewData["Title"] = "Available Plans";
+    ViewData["Title"] = "Subscription Plans & Pricing";
     var currentSub = ViewBag.CurrentSubscription as SubBill.Models.UserSubscription;
+    var trialEligibility = ViewBag.TrialEligibility as Dictionary<int, bool> ?? new Dictionary<int, bool>();
 }
 
-<div class="container py-4">
+<div class="container py-5">
     <div class="text-center mb-5">
-        <h2 class="display-6 fw-bold">Choose the Right Plan for You</h2>
-        <p class="text-muted lead">Transparent pricing with no hidden fees. Flexible monthly, quarterly, or yearly billing.</p>
+        <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill fw-semibold mb-2">Flexible &amp; Transparent</span>
+        <h1 class="display-5 fw-bold text-dark">Find the Perfect Plan for Your Growth</h1>
+        <p class="text-muted lead mx-auto" style="max-width: 650px;">
+            Choose from flexible billing cycles with enterprise features, instant activation, and zero risk.
+        </p>
     </div>
 
     @if (TempData["Message"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @TempData["Message"]
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["Message"]
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
 
     @if (TempData["Error"] != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @TempData["Error"]
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
 
-    <div class="row row-cols-1 row-cols-md-3 g-4 mb-5">
+    <div class="row row-cols-1 row-cols-md-3 g-4 mb-5 align-items-stretch">
         @foreach (var plan in Model)
         {
             var isCurrent = currentSub != null && currentSub.PlanId == plan.Id;
+            var isPopular = plan.Name.Equals("Pro", StringComparison.OrdinalIgnoreCase);
+            var canTrial = trialEligibility.TryGetValue(plan.Id, out var eligible) && eligible && plan.TrialDays > 0;
 
             <div class="col">
-                <div class="card h-100 shadow-sm border-0 @(isCurrent ? "border-primary border-2 shadow" : "")">
-                    <div class="card-header bg-white py-3 text-center @(isCurrent ? "bg-primary text-white" : "")">
-                        <h4 class="card-title my-0 fw-bold">@plan.Name</h4>
-                        @if (isCurrent)
-                        {
-                            <span class="badge bg-light text-primary mt-1">CURRENT ACTIVE PLAN</span>
-                        }
-                    </div>
-                    <div class="card-body d-flex flex-column text-center p-4">
-                        <h2 class="card-title pricing-card-title mb-3">
-                            @plan.Price.ToString("C")
-                            <small class="text-muted fw-light fs-6">/ @plan.BillingCycle</small>
-                        </h2>
-                        <p class="card-text text-muted mb-4">@plan.Description</p>
+                <div class="card h-100 border-0 shadow-sm rounded-4 position-relative @(isPopular ? "border-primary border-2 shadow" : "") @(isCurrent ? "bg-primary-subtle bg-opacity-10 border-success border-2" : "")">
+                    @if (isPopular)
+                    {
+                        <div class="position-absolute top-0 start-50 translate-middle">
+                            <span class="badge bg-gradient bg-primary text-white rounded-pill px-3 py-2 fw-semibold shadow-sm">
+                                <i class="bi bi-fire me-1"></i>MOST POPULAR
+                            </span>
+                        </div>
+                    }
 
-                        <div class="mt-auto">
-                            @if (isCurrent)
+                    <div class="card-body d-flex flex-column p-4 p-xl-5">
+                        <div class="text-center mb-4">
+                            <h4 class="fw-bold text-dark mb-1">@plan.Name</h4>
+                            <p class="text-muted small mb-3">@plan.Description</p>
+
+                            <div class="my-3">
+                                <span class="display-5 fw-extrabold text-dark">₹@plan.Price.ToString("F2")</span>
+                                <span class="text-muted fw-normal fs-6">/ @plan.BillingCycle</span>
+                            </div>
+
+                            @if (plan.TrialDays > 0)
                             {
-                                <a asp-action="MySubscription" class="btn btn-outline-primary w-100">View Active Subscription</a>
-                            }
-                            else if (currentSub != null)
-                            {
-                                <a asp-action="ChangePlan" class="btn btn-primary w-100">Switch to @plan.Name</a>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill small">
+                                    <i class="bi bi-gift-fill me-1"></i>@plan.TrialDays-Day Free Trial Available
+                                </span>
                             }
                             else
                             {
-                                <a asp-action="Subscribe" asp-route-id="@plan.Id" class="btn btn-primary w-100">Subscribe Now</a>
+                                <span class="badge bg-light text-secondary border px-3 py-1 rounded-pill small">
+                                    Instant Activation
+                                </span>
+                            }
+                        </div>
+
+                        <hr class="text-muted opacity-25 my-2" />
+
+                        <!-- Phase 2: Plan Features Checklist -->
+                        <div class="my-4 flex-grow-1">
+                            <h6 class="text-uppercase text-muted fw-bold small mb-3 tracking-wider">What's Included:</h6>
+                            <ul class="list-unstyled mb-0">
+                                @if (plan.Features != null && plan.Features.Any())
+                                {
+                                    @foreach (var feature in plan.Features)
+                                    {
+                                        <li class="d-flex align-items-center mb-2 text-dark">
+                                            <i class="bi bi-check-circle-fill text-success me-2 fs-6 flex-shrink-0"></i>
+                                            <span>
+                                                <strong>@feature.FeatureName</strong>: 
+                                                <span class="text-secondary">@feature.FeatureValue</span>
+                                            </span>
+                                        </li>
+                                    }
+                                }
+                                else
+                                {
+                                    <li class="d-flex align-items-center mb-2 text-muted small">
+                                        <i class="bi bi-check2 text-secondary me-2"></i>Full Platform Access
+                                    </li>
+                                    <li class="d-flex align-items-center mb-2 text-muted small">
+                                        <i class="bi bi-check2 text-secondary me-2"></i>Standard Customer Support
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="mt-auto pt-3">
+                            @if (isCurrent)
+                            {
+                                <div class="alert alert-success text-center py-2 mb-2 small fw-semibold">
+                                    <i class="bi bi-check-circle me-1"></i>Active Subscription
+                                </div>
+                                <a asp-action="MySubscription" class="btn btn-outline-success w-100 fw-bold py-2 rounded-3">
+                                    Go to Billing Dashboard
+                                </a>
+                            }
+                            else if (currentSub != null)
+                            {
+                                <a asp-action="ChangePlan" class="btn btn-primary w-100 fw-bold py-2 rounded-3 shadow-sm">
+                                    Switch to @plan.Name
+                                </a>
+                            }
+                            else
+                            {
+                                @if (canTrial)
+                                {
+                                    <!-- Phase 10: Free Trial Direct Signup -->
+                                    <form asp-action="StartTrial" asp-route-id="@plan.Id" method="post" class="mb-2">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-success w-100 fw-bold py-2 rounded-3 shadow-sm">
+                                            <i class="bi bi-gift me-1"></i>Start @plan.TrialDays-Day Free Trial
+                                        </button>
+                                    </form>
+                                }
+
+                                <a asp-action="Subscribe" asp-route-id="@plan.Id" class="btn @(canTrial ? "btn-outline-primary" : "btn-primary") w-100 fw-bold py-2 rounded-3 shadow-sm">
+                                    Subscribe Now
+                                </a>
                             }
                         </div>
                     </div>
                 </div>
             </div>
         }
+    </div>
+
+    <!-- Assurance Banner -->
+    <div class="card bg-light border-0 rounded-4 p-4 text-center">
+        <div class="row g-4 align-items-center">
+            <div class="col-md-4">
+                <i class="bi bi-shield-check text-primary fs-2 d-block mb-1"></i>
+                <h6 class="fw-bold mb-1">Secure &amp; Encrypted</h6>
+                <small class="text-muted">Simulated 256-bit payment gateway security</small>
+            </div>
+            <div class="col-md-4">
+                <i class="bi bi-arrow-repeat text-success fs-2 d-block mb-1"></i>
+                <h6 class="fw-bold mb-1">Flexible Terms</h6>
+                <small class="text-muted">Upgrade, downgrade, or cancel anytime with ease</small>
+            </div>
+            <div class="col-md-4">
+                <i class="bi bi-file-earmark-pdf text-danger fs-2 d-block mb-1"></i>
+                <h6 class="fw-bold mb-1">Instant Invoices</h6>
+                <small class="text-muted">Automated PDF GST tax invoices generated per payment</small>
+            </div>
+        </div>
     </div>
 </div>

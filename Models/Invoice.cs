@@ -42,5 +42,33 @@ namespace SubBill.Models
         public InvoiceStatus Status { get; set; } = InvoiceStatus.Paid;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Computed / Non-persisted metadata for rich presentation & PDF rendering
+        [NotMapped]
+        public string? CouponCode { get; set; }
+
+        [NotMapped]
+        public decimal CouponDiscount { get; set; }
+
+        [NotMapped]
+        public decimal BasePlanPrice { get; set; }
+
+        [NotMapped]
+        public decimal CGST => Math.Round(TaxAmount / 2m, 2);
+
+        [NotMapped]
+        public decimal SGST => TaxAmount - CGST;
+
+        [NotMapped]
+        public string SacCode => "998313";
+
+        [NotMapped]
+        public string ServiceDescription => "Cloud Software as a Service (SaaS) Platform Subscription";
+
+        [NotMapped]
+        public DateTime PeriodStart => Subscription?.CurrentPeriodStart ?? InvoiceDate;
+
+        [NotMapped]
+        public DateTime PeriodEnd => Subscription?.CurrentPeriodEnd ?? DueDate;
     }
 }

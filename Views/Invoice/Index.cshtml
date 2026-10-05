@@ -35,8 +35,14 @@
                         {
                             <tr>
                                 <td><strong>@invoice.InvoiceNumber</strong></td>
-                                <td>@(invoice.Subscription?.Plan?.Name ?? "Subscription")</td>
-                                <td><strong>@invoice.Currency @invoice.TotalAmount.ToString("F2")</strong></td>
+                                <td>
+                                    <div class="fw-semibold text-dark">@(invoice.Subscription?.Plan?.Name ?? "Subscription") Plan</div>
+                                    <small class="text-muted">Period: @invoice.PeriodStart.ToString("dd MMM yyyy") &ndash; @invoice.PeriodEnd.ToString("dd MMM yyyy")</small>
+                                </td>
+                                <td>
+                                    <div><strong class="text-dark">@invoice.Currency @invoice.TotalAmount.ToString("F2")</strong></div>
+                                    <small class="text-muted">Taxable: @invoice.Currency @invoice.Amount.ToString("F2") | GST: @invoice.Currency @invoice.TaxAmount.ToString("F2")</small>
+                                </td>
                                 <td>
                                     <span class="badge @(invoice.Status == SubBill.Models.InvoiceStatus.Paid ? "bg-success" : "bg-warning text-dark")">
                                         @invoice.Status

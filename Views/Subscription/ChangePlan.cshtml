@@ -2,74 +2,235 @@
 @{
     ViewData["Title"] = "Change Subscription Plan";
     var currentSub = ViewBag.CurrentSubscription as SubBill.Models.UserSubscription;
+    var currentPlan = currentSub?.Plan;
 }
 
 <div class="container py-4">
     <div class="mb-4">
-        <h2>Change Your Subscription Plan</h2>
-        <p class="text-muted">Compare available plans and choose to upgrade or downgrade your active subscription.</p>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a asp-action="MySubscription">Billing Dashboard</a></li>
+                <li class="breadcrumb-item active">Change Plan</li>
+            </ol>
+        </nav>
+        <h2 class="fw-bold text-dark mb-1"><i class="bi bi-arrow-left-right text-primary me-2"></i>Change Subscription Plan</h2>
+        <p class="text-muted">Upgrade to unlock more power or downgrade anytime with transparent prorated transition.</p>
     </div>
 
-    @if (currentSub != null)
+    @if (TempData["Message"] != null)
     {
-        <div class="alert alert-info d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <strong>Current Active Plan:</strong> @currentSub.Plan?.Name (@currentSub.Plan?.Price.ToString("C") / @currentSub.Plan?.BillingCycle)
-            </div>
-            <a asp-action="MySubscription" class="btn btn-sm btn-outline-primary">Back to My Subscription</a>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["Message"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
 
-    <div class="row row-cols-1 row-cols-md-3 g-4 mb-4">
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (currentPlan != null)
+    {
+        <!-- Current Plan Summary Banner -->
+        <div class="card bg-primary text-white border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-body p-4 d-flex flex-wrap justify-content-between align-items-center">
+                <div>
+                    <span class="badge bg-white text-primary fw-bold mb-1">CURRENT ACTIVE PLAN</span>
+                    <h3 class="fw-bold mb-1">@currentPlan.Name Plan</h3>
+                    <p class="mb-0 text-white-50">
+                        ₹@currentPlan.Price.ToString("F2") / @currentPlan.BillingCycle &bull; 
+                        Current Period ends: <strong>@(currentSub?.CurrentPeriodEnd.ToString("dd MMM yyyy") ?? "N/A")</strong>
+                    </p>
+                </div>
+                <div class="mt-3 mt-md-0">
+                    <a asp-action="MySubscription" class="btn btn-outline-light">
+                        <i class="bi bi-speedometer2 me-1"></i>Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Available Plans Grid -->
+    <div class="row row-cols-1 row-cols-md-3 g-4 mb-5">
         @foreach (var plan in Model)
         {
             var isCurrent = currentSub != null && currentSub.PlanId == plan.Id;
-            var isUpgrade = currentSub != null && plan.Price > (currentSub.Plan?.Price ?? 0);
-            var isDowngrade = currentSub != null && plan.Price < (currentSub.Plan?.Price ?? 0);
+            var isUpgrade = currentPlan != null && plan.Price > currentPlan.Price;
+            var isDowngrade = currentPlan != null && plan.Price < currentPlan.Price;
 
             <div class="col">
-                <div class="card h-100 shadow-sm border-0 @(isCurrent ? "border-primary border-2" : "")">
-                    <div class="card-header bg-transparent py-3 text-center @(isCurrent ? "bg-primary text-white" : "")">
-                        <h4 class="card-title my-0 fw-bold">@plan.Name</h4>
+                <div class="card h-100 shadow-sm border-0 rounded-4 @(isCurrent ? "border-2 border-primary" : "")">
+                    <div class="card-header bg-white py-3 text-center border-0">
+                        <h4 class="card-title fw-bold text-dark mb-1">@plan.Name</h4>
                         @if (isCurrent)
                         {
-                            <span class="badge bg-light text-primary mt-1">CURRENT PLAN</span>
+                            <span class="badge bg-primary text-white">CURRENT PLAN</span>
                         }
                         else if (isUpgrade)
                         {
-                            <span class="badge bg-success mt-1">UPGRADE</span>
+                            <span class="badge bg-success text-white"><i class="bi bi-arrow-up-circle me-1"></i>UPGRADE</span>
                         }
                         else if (isDowngrade)
                         {
-                            <span class="badge bg-warning text-dark mt-1">DOWNGRADE</span>
+                            <span class="badge bg-warning text-dark"><i class="bi bi-arrow-down-circle me-1"></i>DOWNGRADE</span>
                         }
                     </div>
-                    <div class="card-body d-flex flex-column text-center p-4">
-                        <h1 class="card-title pricing-card-title mb-3">
-                            @plan.Price.ToString("C")
-                            <small class="text-muted fw-light fs-6">/ @plan.BillingCycle</small>
-                        </h1>
-                        <p class="card-text text-muted mb-4">@plan.Description</p>
 
-                        <div class="mt-auto">
+                    <div class="card-body d-flex flex-column p-4">
+                        <div class="text-center mb-3">
+                            <h2 class="fw-bold text-dark mb-0">₹@plan.Price.ToString("F2")</h2>
+                            <small class="text-muted">/ @plan.BillingCycle</small>
+                            <p class="text-muted small mt-2">@plan.Description</p>
+                        </div>
+
+                        <!-- Feature list snippet -->
+                        <div class="my-3 flex-grow-1">
+                            <h6 class="small fw-bold text-uppercase text-muted">Plan Capabilities:</h6>
+                            <ul class="list-unstyled small mb-0">
+                                @if (plan.Features != null && plan.Features.Any())
+                                {
+                                    @foreach (var feat in plan.Features)
+                                    {
+                                        <li class="mb-1 text-dark">
+                                            <i class="bi bi-check2 text-success me-1"></i><strong>@feat.FeatureName</strong>: @feat.FeatureValue
+                                        </li>
+                                    }
+                                }
+                                else
+                                {
+                                    <li class="text-muted">Standard capabilities included</li>
+                                }
+                            </ul>
+                        </div>
+
+                        <!-- Action / Comparison trigger -->
+                        <div class="mt-auto pt-3">
                             @if (isCurrent)
                             {
-                                <button type="button" class="btn btn-secondary w-100 disabled">Current Plan</button>
+                                <button type="button" class="btn btn-secondary w-100 disabled" disabled>
+                                    Active Plan
+                                </button>
                             }
                             else
                             {
-                                <form asp-action="ConfirmChangePlan" method="post" onsubmit="return confirm('Are you sure you want to change to the @plan.Name plan?');">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="newPlanId" value="@plan.Id" />
-                                    <button type="submit" class="btn @(isUpgrade ? "btn-success" : "btn-warning") w-100">
-                                        @(isUpgrade ? "Upgrade to " + plan.Name : "Downgrade to " + plan.Name)
-                                    </button>
-                                </form>
+                                <button type="button" class="btn @(isUpgrade ? "btn-success" : "btn-warning") w-100 fw-semibold"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#compareModal-@plan.Id">
+                                    <i class="bi @(isUpgrade ? "bi-arrow-up-right" : "bi-arrow-down-right") me-1"></i>
+                                    Compare &amp; @(isUpgrade ? "Upgrade" : "Downgrade")
+                                </button>
                             }
                         </div>
                     </div>
                 </div>
             </div>
+
+            @if (!isCurrent)
+            {
+                <!-- Phase 3: Plan Comparison Modal -->
+                <div class="modal fade" id="compareModal-@plan.Id" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content rounded-4 border-0 shadow">
+                            <div class="modal-header @(isUpgrade ? "bg-success text-white" : "bg-warning text-dark")">
+                                <h5 class="modal-title fw-bold">
+                                    <i class="bi @(isUpgrade ? "bi-arrow-up-circle-fill" : "bi-arrow-down-circle-fill") me-2"></i>
+                                    Confirm Plan @(isUpgrade ? "Upgrade" : "Downgrade") to @plan.Name
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body p-4">
+                                <p class="text-muted mb-4">Review the comparison between your current active subscription and the requested new plan:</p>
+
+                                <div class="table-responsive">
+                                    <table class="table table-bordered align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 34%;">Feature / Detail</th>
+                                                <th style="width: 33%;" class="text-secondary">Current: @currentPlan?.Name</th>
+                                                <th style="width: 33%;" class="table-primary fw-bold text-primary">New: @plan.Name</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="fw-semibold">Price</td>
+                                                <td>₹@(currentPlan?.Price.ToString("F2") ?? "0.00") / @currentPlan?.BillingCycle</td>
+                                                <td class="fw-bold text-primary">₹@plan.Price.ToString("F2") / @plan.BillingCycle</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold">Plan Change Type</td>
+                                                <td>Existing</td>
+                                                <td>
+                                                    <span class="badge @(isUpgrade ? "bg-success" : "bg-warning text-dark")">
+                                                        @(isUpgrade ? "UPGRADE" : "DOWNGRADE")
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            <!-- Dynamic Feature Comparison Rows -->
+                                            @{
+                                                var currentFeats = currentPlan?.Features?.ToDictionary(f => f.FeatureName, f => f.FeatureValue) 
+                                                    ?? new Dictionary<string, string>();
+                                                var newFeats = plan.Features?.ToDictionary(f => f.FeatureName, f => f.FeatureValue) 
+                                                    ?? new Dictionary<string, string>();
+                                                var allFeatureNames = currentFeats.Keys.Union(newFeats.Keys).Distinct().OrderBy(k => k);
+                                            }
+                                            @foreach (var featName in allFeatureNames)
+                                            {
+                                                var currVal = currentFeats.TryGetValue(featName, out var cv) ? cv : "—";
+                                                var newVal = newFeats.TryGetValue(featName, out var nv) ? nv : "—";
+
+                                                <tr>
+                                                    <td class="fw-semibold">@featName</td>
+                                                    <td>@currVal</td>
+                                                    <td class="fw-semibold text-dark">@newVal</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                @if (isUpgrade)
+                                {
+                                    <div class="alert alert-success-subtle text-success-emphasis border border-success-subtle small mt-3">
+                                        <i class="bi bi-credit-card-2-front me-1"></i>
+                                        <strong>Upgrade Payment Required:</strong> Switching to <strong>@plan.Name</strong> will take you to the payment checkout to pay <strong>₹@plan.Price.ToString("F2")</strong> and immediately activate your new higher tier.
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-light border small mt-3">
+                                        <i class="bi bi-info-circle me-1 text-primary"></i>
+                                        <strong>Billing Note:</strong> Your current subscription period will update to <strong>@plan.Name</strong> starting immediately with full entitlements.
+                                    </div>
+                                }
+                            </div>
+                            <div class="modal-footer bg-light">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                @if (isUpgrade)
+                                {
+                                    <a asp-controller="Payment" asp-action="Checkout" asp-route-planId="@plan.Id" asp-route-isUpgrade="true" class="btn btn-success fw-bold px-4">
+                                        <i class="bi bi-credit-card me-1"></i>Proceed to Payment (₹@plan.Price.ToString("F2"))
+                                    </a>
+                                }
+                                else
+                                {
+                                    <form asp-action="ConfirmChangePlan" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="newPlanId" value="@plan.Id" />
+                                        <button type="submit" class="btn btn-warning fw-bold px-4">
+                                            Confirm Downgrade to @plan.Name
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
         }
     </div>
 </div>

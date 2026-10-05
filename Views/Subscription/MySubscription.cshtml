@@ -116,13 +116,58 @@
                             <div class="col-sm-6">
                                 <label class="text-muted small text-uppercase fw-semibold">Price &amp; Cycle</label>
                                 <div class="fs-4 fw-bold text-dark">
-                                    ₹@Model.CurrentSubscription.Plan?.Price.ToString("F2")
-                                    <span class="fs-6 fw-normal text-muted">/ @Model.CurrentSubscription.Plan?.BillingCycle</span>
+                                    @(Model.CurrentSubscription.Plan != null ? "₹" + Model.CurrentSubscription.Plan.Price.ToString("F2") : "—")
+                                    <span class="fs-6 fw-normal text-muted">/ @(Model.CurrentSubscription.Plan?.BillingCycle.ToString() ?? "Cycle")</span>
                                 </div>
-                                <div class="text-muted small">Billed automatically each @Model.CurrentSubscription.Plan?.BillingCycle.ToString().ToLower()</div>
+                                <div class="text-muted small">Billed automatically each @(Model.CurrentSubscription.Plan?.BillingCycle.ToString().ToLower() ?? "period")</div>
                             </div>
 
                             <hr class="my-2" />
+
+                            @if (Model.CurrentSubscription.Status == SubBill.Models.SubscriptionStatus.Trialing)
+                            {
+                                <div class="col-12">
+                                    <div class="card bg-info-subtle border border-info-subtle p-3 rounded-3 mb-2">
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                            <div>
+                                                <h6 class="fw-bold text-info-emphasis mb-1">
+                                                    <i class="bi bi-gift-fill me-1"></i>Free Trial In Progress
+                                                </h6>
+                                                <div class="small text-secondary">
+                                                    Remaining: <strong class="text-dark">@Model.CurrentSubscription.RemainingTrialDays Days</strong> &bull;
+                                                    Expires on: <strong>@(Model.CurrentSubscription.TrialEndDate?.ToString("dd MMM yyyy") ?? Model.CurrentSubscription.CurrentPeriodEnd.ToString("dd MMM yyyy"))</strong>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <a asp-controller="Payment" asp-action="Checkout" asp-route-planId="@Model.CurrentSubscription.PlanId" class="btn btn-sm btn-success fw-bold">
+                                                    <i class="bi bi-credit-card me-1"></i>Activate Paid Subscription
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Plan Features Entitlements -->
+                            @if (Model.CurrentSubscription.Plan?.Features != null && Model.CurrentSubscription.Plan.Features.Any())
+                            {
+                                <div class="col-12">
+                                    <div class="card bg-light border-0 p-3 rounded-3 mb-2">
+                                        <div class="fw-bold small text-uppercase text-secondary mb-2">
+                                            <i class="bi bi-check2-all text-success me-1"></i>Plan Features &amp; Limits
+                                        </div>
+                                        <div class="row g-2">
+                                            @foreach (var feat in Model.CurrentSubscription.Plan.Features)
+                                            {
+                                                <div class="col-sm-6 small">
+                                                    <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                                    <strong>@feat.FeatureName:</strong> <span class="text-secondary">@feat.FeatureValue</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
 
                             <!-- Current Period & Next Billing Date -->
                             <div class="col-sm-6">
@@ -488,10 +533,15 @@
                                                 <a asp-controller="Invoice" asp-action="Details" asp-route-id="@inv.Id" class="fw-bold text-primary text-decoration-none">
                                                     @inv.InvoiceNumber
                                                 </a>
-                                                <div class="small text-muted">@(inv.Subscription?.Plan?.Name ?? "Subscription")</div>
+                                                <div class="small text-muted">
+                                                    @(inv.Subscription?.Plan?.Name ?? "Subscription") Plan &bull; Coverage: @inv.PeriodStart.ToString("dd MMM") &ndash; @inv.PeriodEnd.ToString("dd MMM yyyy")
+                                                </div>
                                             </td>
                                             <td>@inv.InvoiceDate.ToString("dd MMM yyyy")</td>
-                                            <td><strong>@inv.Currency @inv.TotalAmount.ToString("F2")</strong></td>
+                                            <td>
+                                                <div><strong>@inv.Currency @inv.TotalAmount.ToString("F2")</strong></div>
+                                                <div class="text-muted" style="font-size: 0.75rem;">Taxable: @inv.Currency @inv.Amount.ToString("F2") | GST: @inv.Currency @inv.TaxAmount.ToString("F2")</div>
+                                            </td>
                                             <td>
                                                 <span class="badge @(inv.Status == SubBill.Models.InvoiceStatus.Paid ? "bg-success" : "bg-warning text-dark")">
                                                     @inv.Status
@@ -669,15 +719,20 @@
                                     {
                                         <button class="btn btn-outline-primary btn-sm w-100" disabled>Active</button>
                                     }
+                                    else if (isUpgrade)
+                                    {
+                                        <a asp-controller="Payment" asp-action="Checkout" asp-route-planId="@plan.Id" asp-route-isUpgrade="true" class="btn btn-sm w-100 btn-success fw-bold">
+                                            <i class="bi bi-credit-card me-1"></i>Upgrade &amp; Pay (₹@plan.Price.ToString("F2"))
+                                        </a>
+                                    }
                                     else
                                     {
                                         <form asp-action="ConfirmChangePlan" method="post" class="action-form">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="newPlanId" value="@plan.Id" />
-                                            <button type="submit" class="btn btn-sm w-100 @(isUpgrade ? "btn-success" : "btn-warning")">
+                                            <button type="submit" class="btn btn-sm w-100 btn-warning">
                                                 <span class="btn-spinner spinner-border spinner-border-sm me-1 d-none" role="status"></span>
-                                                <i class="bi @(isUpgrade ? "bi-arrow-up" : "bi-arrow-down") me-1"></i>
-                                                @(isUpgrade ? "Upgrade" : "Downgrade")
+                                                <i class="bi bi-arrow-down me-1"></i>Downgrade
                                             </button>
                                         </form>
                                     }

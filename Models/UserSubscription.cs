@@ -35,6 +35,17 @@ namespace SubBill.Models
 
         public bool AutoRenew { get; set; } = true;
 
+        // Phase 10: Free Trial Support
+        public DateTime? TrialStartDate { get; set; }
+        public DateTime? TrialEndDate { get; set; }
+        public bool HasUsedTrial { get; set; } = false;
+
+        [NotMapped]
+        public int RemainingTrialDays =>
+            Status == SubscriptionStatus.Trialing && TrialEndDate.HasValue
+                ? Math.Max(0, (int)Math.Ceiling((TrialEndDate.Value - DateTime.UtcNow).TotalDays))
+                : 0;
+
         public DateTime? CancelledAt { get; set; }
 
         [MaxLength(500)]
